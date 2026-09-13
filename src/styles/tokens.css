@@ -1,0 +1,153 @@
+/**
+ * FX Replay — Design Tokens
+ * 44 primitives + 60 semantic tokens. Import this file once.
+ *
+ * Usage:
+ *   - Engineers should reference SEMANTIC tokens in product code
+ *     (var(--bg-primary), var(--text-primary), var(--border-brand)).
+ *   - Never use raw primitives (var(--dark-900)) or hard-coded hex directly
+ *     in product code — primitives exist only so semantic tokens can alias them.
+ *
+ * Regenerated from brand-kit.html. See ../README.md for context.
+ */
+
+:root {
+  /* ============================================================
+     PRIMITIVES (44) — the only place literal hex lives.
+     ============================================================ */
+
+  /* Brand (3) */
+  --brand-blue: #0260FD;
+  --brand-black: #000000;
+  --brand-accent: #2A2A2A;
+
+  /* Neutral (11) */
+  --neutral-950: #000000;
+  --neutral-900: #3D3D3D;
+  --neutral-800: #454545;
+  --neutral-700: #4F4F4F;
+  --neutral-600: #5D5D5D;
+  --neutral-500: #6D6D6D;
+  --neutral-400: #888888;
+  --neutral-300: #B0B0B0;
+  --neutral-200: #D1D1D1;
+  --neutral-100: #E7E7E7;
+  --neutral-50: #F6F6F6;
+
+  /* Blue (10) */
+  --blue-900: #012054;
+  --blue-800: #01307F;
+  --blue-700: #0250D3;
+  --blue-600: #0260FD; /* Electric Blue — brand color */
+  --blue-500: #2C7BFD;
+  --blue-400: #5695FE;
+  --blue-300: #80AFFE;
+  --blue-200: #ABCAFE;
+  --blue-100: #CCDFFF;
+  --blue-50: #EAF2FF;
+
+  /* Dark (11) */
+  --dark-950: #000000;
+  --dark-900: #030303; /* ground */
+  --dark-800: #0A0A0A;
+  --dark-700: #1A1A1A;
+  --dark-600: #2A2A2A;
+  --dark-500: #3A3A3A;
+  --dark-400: #4A4A4A;
+  --dark-300: #5A5A5A;
+  --dark-200: #6A6A6A;
+  --dark-100: #7A7A7A;
+  --dark-50: #8A8A8A;
+
+  /* System (9) */
+  --success: #53B483;
+  --success-light: #D9F9E6;
+  --success-dark: #2F7A5C;
+  --error: #CD3636;
+  --error-light: #F8D7DA;
+  --error-dark: #912626;
+  --warning: #CD8A36;
+  --warning-light: #FFF3CD;
+  --warning-dark: #8A5A1F;
+
+  /* ============================================================
+     SEMANTIC (60) — purpose-named aliases. Build with these.
+     ============================================================ */
+
+  /* Background (8) */
+  --bg-primary: var(--dark-900);
+  --bg-secondary: var(--dark-800);
+  --bg-tertiary: var(--dark-700);
+  --alternate: var(--neutral-50);
+  --bg-card: var(--dark-900);
+  --bg-success: var(--success);
+  --bg-error: var(--error);
+  --bg-warning: var(--warning);
+
+  /* Border (7) */
+  --border-primary: var(--dark-700);
+  --border-secondary: var(--dark-600);
+  --border-tertiary: var(--dark-500);
+  --border-success: var(--success-dark);
+  --border-error: var(--error-dark);
+  --border-warning: var(--warning-dark);
+  --border-brand: var(--blue-600);
+
+  /* Text (7) */
+  --text-primary: var(--neutral-50);
+  --text-secondary: var(--neutral-200);
+  --text-disabled: var(--neutral-400);
+  --text-brand: var(--blue-600);
+  --text-error: var(--error-light);
+  --text-warning: var(--warning-light);
+  --text-success: var(--success-light);
+
+  /* Button (18) */
+  --btn-bg-primary-active: var(--blue-600);
+  --btn-bg-primary-hover: var(--blue-800);
+  --btn-bg-primary-pressed: var(--blue-900);
+  /* OPEN QUESTION (see README): source points this at "blue-950", which
+     doesn't exist in the primitive scale (it stops at blue-900). Falling
+     back to true black (dark-950) until design adds blue-950 or repoints it. */
+  --btn-bg-primary-disabled: var(--dark-950);
+  --btn-bg-secondary-active: var(--dark-700);
+  --btn-bg-secondary-hover: var(--dark-600);
+  --btn-bg-secondary-pressed: var(--dark-800);
+  --btn-bg-secondary-disabled: var(--dark-500);
+  --btn-bg-outline-active: var(--dark-900);
+  --btn-bg-outline-hover: var(--dark-600);
+  --btn-bg-outline-disabled: var(--dark-800);
+  --btn-bg-outline-pressed: var(--dark-700);
+  --btn-border-outline: var(--dark-200);
+  --btn-bg-minimal: var(--dark-900);
+  --btn-text-minimal-hover: var(--blue-500);
+  --btn-text-minimal-pressed: var(--blue-500);
+  --btn-text: var(--neutral-50);
+  --btn-text-disabled: var(--dark-100);
+
+  /* Icon (5) */
+  --icon-primary: var(--neutral-50);
+  --icon-secondary: var(--neutral-200);
+  --icon-error: var(--error-light);
+  --icon-warning: var(--warning-light);
+  --icon-success: var(--success-light);
+
+  /* Banner (8) */
+  --banner-bg-error: var(--error);
+  --banner-bg-warning: var(--warning);
+  --banner-bg-success: var(--success);
+  --banner-bg-info: var(--dark-800);
+  --banner-bg-secondary: var(--dark-700);
+  --banner-color-icon: var(--neutral-50);
+  --banner-color-headline: var(--neutral-50);
+  --banner-color-paragraph: var(--neutral-50);
+
+  /* Card (7) */
+  --card-bg-primary: var(--dark-900);
+  --card-bg-secondary: var(--dark-700);
+  --card-bg-translucent: color-mix(in srgb, var(--dark-900) 60%, transparent); /* dark-900 @ 60% */
+  --card-text-primary: var(--neutral-50);
+  --card-text-secondary: var(--neutral-200);
+  --card-bg-primary-hover: var(--dark-700);
+  --card-bg-secondary-hover: var(--dark-600);
+}
