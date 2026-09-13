@@ -1,0 +1,45 @@
+---
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+
+const { heroVariant } = Astro.locals;
+const isTest = heroVariant === "test";
+---
+
+<section id="hero" class="mx-auto max-w-5xl px-6 py-20 text-center sm:py-28">
+  {
+    isTest ? (
+      <>
+        <h1 class="text-4xl font-black tracking-tight sm:text-6xl">
+          Trade Smarter. Backtest Instantly.
+        </h1>
+        <p class="mx-auto mt-6 max-w-2xl text-lg text-text-secondary">
+          Replay any market, any timeframe, at your own pace — and turn hindsight into your edge.
+        </p>
+      </>
+    ) : (
+      <>
+        <h1 class="text-4xl font-black tracking-tight sm:text-6xl">Try FX Replay Free</h1>
+        <p class="mx-auto mt-6 max-w-2xl text-lg text-text-secondary">
+          The fastest way to backtest and sharpen your trading strategy with realistic market
+          replay.
+        </p>
+      </>
+    )
+  }
+
+  <div class="mt-10 flex justify-center">
+    <a
+      href="#signup"
+      data-cta-location="hero"
+      data-cta-text="Try FX Replay Free"
+      data-cta-variant={heroVariant}
+      class={cn(
+        buttonVariants({ size: "lg" }),
+        "bg-btn-bg-primary-active text-btn-text hover:bg-btn-bg-primary-hover",
+      )}
+    >
+      Try FX Replay Free
+    </a>
+  </div>
+</section>

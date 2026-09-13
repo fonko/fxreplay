@@ -1,0 +1,168 @@
+@import "tailwindcss";
+@import "./tokens.css";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/* Self-hosted brand fonts (brand-kit.md ss3): Lato for headings, Nunito Sans for body/UI. */
+@import "@fontsource/lato/400.css";
+@import "@fontsource/lato/700.css";
+@import "@fontsource/lato/900.css";
+@import "@fontsource-variable/nunito-sans/wght.css";
+
+/**
+ * FX Replay is a single dark-themed brand (--bg-primary is the "ground",
+ * dark-900) — there is no light-mode variant, so shadcn's generated
+ * light/.dark pair is collapsed into one :root here.
+ *
+ * shadcn/radix components reference generic slot names (bg-primary,
+ * text-primary-foreground, bg-background, border-border, ...) baked into
+ * their className strings. Rather than hand-edit every generated component
+ * (which fights `npx shadcn add` on every future run), each slot below is
+ * repointed at the matching SEMANTIC token from tokens.css, so generated
+ * components automatically render in FX Replay's palette.
+ */
+:root {
+  --background: var(--bg-primary);
+  --foreground: var(--text-primary);
+  --card: var(--card-bg-primary);
+  --card-foreground: var(--card-text-primary);
+  --popover: var(--card-bg-primary);
+  --popover-foreground: var(--card-text-primary);
+  --primary: var(--btn-bg-primary-active);
+  --primary-foreground: var(--btn-text);
+  --secondary: var(--btn-bg-secondary-active);
+  --secondary-foreground: var(--btn-text);
+  --muted: var(--bg-tertiary);
+  --muted-foreground: var(--text-secondary);
+  --accent: var(--btn-bg-outline-hover);
+  --accent-foreground: var(--text-primary);
+  --destructive: var(--bg-error);
+  --border: var(--border-primary);
+  --input: var(--border-secondary);
+  --ring: var(--border-brand);
+  --radius: 0.625rem;
+}
+
+/**
+ * Tailwind v4 theme mapping — SEMANTIC tokens only.
+ * Never alias a raw primitive (--blue-600, --dark-900, etc.) here — that
+ * would let product code bypass the semantic layer.
+ */
+@theme inline {
+  --font-heading: "Lato", sans-serif;
+  --font-body: "Nunito Sans Variable", sans-serif;
+  --font-sans: var(--font-body);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Background (8) */
+  --color-bg-primary: var(--bg-primary);
+  --color-bg-secondary: var(--bg-secondary);
+  --color-bg-tertiary: var(--bg-tertiary);
+  --color-alternate: var(--alternate);
+  --color-bg-card: var(--bg-card);
+  --color-bg-success: var(--bg-success);
+  --color-bg-error: var(--bg-error);
+  --color-bg-warning: var(--bg-warning);
+
+  /* Border (7) */
+  --color-border-primary: var(--border-primary);
+  --color-border-secondary: var(--border-secondary);
+  --color-border-tertiary: var(--border-tertiary);
+  --color-border-success: var(--border-success);
+  --color-border-error: var(--border-error);
+  --color-border-warning: var(--border-warning);
+  --color-border-brand: var(--border-brand);
+
+  /* Text (7) */
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-disabled: var(--text-disabled);
+  --color-text-brand: var(--text-brand);
+  --color-text-error: var(--text-error);
+  --color-text-warning: var(--text-warning);
+  --color-text-success: var(--text-success);
+
+  /* Button (18) */
+  --color-btn-bg-primary-active: var(--btn-bg-primary-active);
+  --color-btn-bg-primary-hover: var(--btn-bg-primary-hover);
+  --color-btn-bg-primary-pressed: var(--btn-bg-primary-pressed);
+  --color-btn-bg-primary-disabled: var(--btn-bg-primary-disabled);
+  --color-btn-bg-secondary-active: var(--btn-bg-secondary-active);
+  --color-btn-bg-secondary-hover: var(--btn-bg-secondary-hover);
+  --color-btn-bg-secondary-pressed: var(--btn-bg-secondary-pressed);
+  --color-btn-bg-secondary-disabled: var(--btn-bg-secondary-disabled);
+  --color-btn-bg-outline-active: var(--btn-bg-outline-active);
+  --color-btn-bg-outline-hover: var(--btn-bg-outline-hover);
+  --color-btn-bg-outline-disabled: var(--btn-bg-outline-disabled);
+  --color-btn-bg-outline-pressed: var(--btn-bg-outline-pressed);
+  --color-btn-border-outline: var(--btn-border-outline);
+  --color-btn-bg-minimal: var(--btn-bg-minimal);
+  --color-btn-text-minimal-hover: var(--btn-text-minimal-hover);
+  --color-btn-text-minimal-pressed: var(--btn-text-minimal-pressed);
+  --color-btn-text: var(--btn-text);
+  --color-btn-text-disabled: var(--btn-text-disabled);
+
+  /* Icon (5) */
+  --color-icon-primary: var(--icon-primary);
+  --color-icon-secondary: var(--icon-secondary);
+  --color-icon-error: var(--icon-error);
+  --color-icon-warning: var(--icon-warning);
+  --color-icon-success: var(--icon-success);
+
+  /* Banner (8) */
+  --color-banner-bg-error: var(--banner-bg-error);
+  --color-banner-bg-warning: var(--banner-bg-warning);
+  --color-banner-bg-success: var(--banner-bg-success);
+  --color-banner-bg-info: var(--banner-bg-info);
+  --color-banner-bg-secondary: var(--banner-bg-secondary);
+  --color-banner-color-icon: var(--banner-color-icon);
+  --color-banner-color-headline: var(--banner-color-headline);
+  --color-banner-color-paragraph: var(--banner-color-paragraph);
+
+  /* Card (7) */
+  --color-card-bg-primary: var(--card-bg-primary);
+  --color-card-bg-secondary: var(--card-bg-secondary);
+  --color-card-bg-translucent: var(--card-bg-translucent);
+  --color-card-text-primary: var(--card-text-primary);
+  --color-card-text-secondary: var(--card-text-secondary);
+  --color-card-bg-primary-hover: var(--card-bg-primary-hover);
+  --color-card-bg-secondary-hover: var(--card-bg-secondary-hover);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+}

@@ -1,0 +1,34 @@
+---
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+const features = [
+  {
+    title: "Tick-accurate replay",
+    description: "Step through historical price action candle by candle, or run it at up to 10x speed.",
+  },
+  {
+    title: "Any pair, any timeframe",
+    description: "Backtest across the full FX majors/minors universe without switching tools.",
+  },
+  {
+    title: "Journal as you trade",
+    description: "Log entries, exits, and notes in the same session — no spreadsheet round-trips.",
+  },
+];
+---
+
+<section id="features" class="mx-auto max-w-6xl px-6 py-20">
+  <h2 class="text-center text-3xl font-bold sm:text-4xl">Built for deliberate practice</h2>
+  <div class="mt-12 grid gap-6 sm:grid-cols-3">
+    {
+      features.map((feature) => (
+        <Card className="border-border-primary bg-card-bg-primary">
+          <CardHeader>
+            <CardTitle className="text-card-text-primary">{feature.title}</CardTitle>
+          </CardHeader>
+          <CardContent className="text-card-text-secondary">{feature.description}</CardContent>
+        </Card>
+      ))
+    }
+  </div>
+</section>

@@ -63,7 +63,12 @@
 - Custom Workflow Commands:
   - Run `/growth-audit` before committing code to trigger a full automated check across all 3 sub-agents.
 
+  ## AI Infrastructure & MCP Servers
+- **Supabase MCP:** Enabled for live DB schema inspection, RLS policy verification, and Drizzle migration validations.
+- **Claude Sub-agents:** Used `@performance-agent`, `@seo-agent`, and `@growth-experimentation-agent` alongside `/growth-audit` skill for automated pre-commit validation.
+
 ## Design System & Brand Kit
 - Always follow the design guidelines defined in `.claude/commands/brand-kit.md`.
 - Import `src/styles/tokens.css` into the global styles and use semantic variables exclusively.
 - Use SVGs from `public/logos/` for all brand assets.
+

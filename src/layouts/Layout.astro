@@ -1,0 +1,64 @@
+---
+import "../styles/global.css";
+import Footer from "../components/sections/Footer.astro";
+
+interface Props {
+  title: string;
+  description: string;
+  ogImage?: string;
+}
+
+const { title, description, ogImage = "/logos/FXReplayLogo.svg" } = Astro.props;
+const canonicalURL = new URL(Astro.url.pathname, import.meta.env.PUBLIC_SITE_URL ?? Astro.site);
+const { posthogBootstrap } = Astro.locals;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="canonical" href={canonicalURL} />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonicalURL} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
+    <script
+      is:inline
+      type="application/json"
+      id="ph-bootstrap"
+      set:html={JSON.stringify(posthogBootstrap)}
+    />
+    <script>
+      import { initPostHogClient, attachCtaTracking } from "../lib/posthog/client";
+
+      const bootstrapEl = document.getElementById("ph-bootstrap");
+      const bootstrap = JSON.parse(bootstrapEl?.textContent ?? "{}");
+
+      initPostHogClient(bootstrap);
+      attachCtaTracking();
+    </script>
+  </head>
+  <body class="min-h-screen bg-bg-primary text-text-primary font-body">
+    <header>
+      <a href="/" aria-label="FX Replay home">
+        <img src="/logos/FXReplayLogo.svg" alt="FX Replay" width="140" height="32" />
+      </a>
+    </header>
+    <main>
+      <slot />
+    </main>
+    <Footer />
+  </body>
+</html>

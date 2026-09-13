@@ -1,0 +1,15 @@
+---
+import SignupForm from "./SignupForm";
+
+const { heroVariant } = Astro.locals;
+---
+
+<section id="signup" class="mx-auto max-w-3xl px-6 py-20 text-center">
+  <h2 class="text-3xl font-bold sm:text-4xl">Start your free replay session</h2>
+  <p class="mx-auto mt-4 max-w-xl text-text-secondary">
+    No card required. Set up in under a minute.
+  </p>
+  <div class="mt-10">
+    <SignupForm client:idle variantId={heroVariant} />
+  </div>
+</section>
