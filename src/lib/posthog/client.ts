@@ -5,6 +5,7 @@
 // actually call: init/capture and bootstrapped feature flags.
 import posthog from "posthog-js/dist/module.slim";
 import { EVENTS, type LandingPageViewedProps } from "./events";
+import { POSTHOG_ENVIRONMENT } from "./environment";
 
 export interface PostHogBootstrap {
   distinctID: string;
@@ -35,6 +36,10 @@ export function initPostHogClient(bootstrap: PostHogBootstrap) {
     api_host: import.meta.env.PUBLIC_POSTHOG_HOST,
     bootstrap,
   });
+  // Super property on every browser capture, so dev-server events stay
+  // filterable and don't grade as production traffic — the server client tags
+  // its captures the same way.
+  posthog.register({ environment: POSTHOG_ENVIRONMENT });
   window.__ph = posthog;
 
   const heroVariant = bootstrap.featureFlags["hero-variant"];
