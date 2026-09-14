@@ -16,6 +16,7 @@ interface UserRow {
   utmCampaign: string | null;
   visitCount: number | null;
   conversionTimeSeconds: number | null;
+  emailVerifiedAt: Date | null;
   createdAt: Date;
 }
 
@@ -441,8 +442,19 @@ export default function AdminUsersPanel() {
                       )}
                     </Button>
                   </td>
-                  <td className="max-w-[180px] truncate px-2 py-2" title={user.email}>
-                    {user.email}
+                  <td className="max-w-[180px] px-2 py-2">
+                    <div className="truncate" title={user.email}>
+                      {user.email}
+                    </div>
+                    <span
+                      className={`mt-0.5 inline-block rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
+                        user.emailVerifiedAt
+                          ? "bg-bg-success/20 text-text-success"
+                          : "bg-bg-warning/20 text-text-warning"
+                      }`}
+                    >
+                      {user.emailVerifiedAt ? "Verified" : "Not verified"}
+                    </span>
                   </td>
                   <td className="max-w-[120px] px-2 py-2">
                     {editingId === user.id ? (
