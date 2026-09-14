@@ -1,4 +1,9 @@
-import posthog from "posthog-js";
+// The default posthog-js entry bundles Session Replay, Surveys, and
+// Conversations — none of which this landing page uses (Session Replay is
+// only relevant post-signup; Surveys/Conversations are off for this
+// project). The "slim" build is ~52% smaller and keeps everything we
+// actually call: init/capture and bootstrapped feature flags.
+import posthog from "posthog-js/dist/module.slim";
 import { EVENTS, type LandingPageViewedProps } from "./events";
 
 export interface PostHogBootstrap {

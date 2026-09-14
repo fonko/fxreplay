@@ -231,8 +231,18 @@ which is what this was originally scoped against.
     `import()` ([Layout.astro](src/layouts/Layout.astro)), which Vite does *not* preload;
     confirmed in the built server chunk that the route's `scripts` metadata (Astro's
     auto-preload list) no longer references it at all.
-- **Third-party scripts:** a single, now genuinely deferred `posthog-js` init; no other
-  third-party tags.
+  - *Duplicated JS within the posthog-js bundle* (`preact`, `uuidv7`, `surveys.js`,
+    `conversations.js` all flagged by Lighthouse's duplicate-JS audit): the default
+    `posthog-js` entry bundles Session Replay, Surveys, and Conversations, none of which
+    this landing page calls — those products being off in the PostHog project doesn't
+    stop the client bundle from shipping their code, only from activating it. Switched
+    [client.ts](src/lib/posthog/client.ts) to the `posthog-js/dist/module.slim` entry,
+    which cuts the built chunk from ~300KB to 141KB minified (confirmed in
+    `.vercel/output/static/_astro/`) while keeping everything actually used
+    (`init`/`capture` with bootstrapped flags) — reverified `landing_page_viewed` and
+    `cta_clicked` still fire correctly after the swap.
+- **Third-party scripts:** a single, now genuinely deferred `posthog-js` (slim build)
+  init; no other third-party tags.
 - **SEO — structured data & sitemap:** `Organization` + `WebSite` + `SoftwareApplication`
   JSON-LD ([Layout.astro](src/layouts/Layout.astro)) alongside the existing OG/Twitter/
   canonical tags — only asserting what's actually true (a real free tier), no fabricated
