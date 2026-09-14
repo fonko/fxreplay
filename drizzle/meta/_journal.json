@@ -15,6 +15,13 @@
       "when": 1789389913047,
       "tag": "0001_open_nekra",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789391062600,
+      "tag": "0002_slim_payback",
+      "breakpoints": true
     }
   ]
 }

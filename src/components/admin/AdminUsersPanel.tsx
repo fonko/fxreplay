@@ -10,6 +10,9 @@ interface UserRow {
   id: string;
   email: string;
   name: string | null;
+  utmSource: string | null;
+  utmMedium: string | null;
+  utmCampaign: string | null;
   createdAt: Date;
 }
 
@@ -205,6 +208,9 @@ export default function AdminUsersPanel() {
             <tr>
               <th className="px-3 py-2 font-medium">Email</th>
               <th className="px-3 py-2 font-medium">Name</th>
+              <th className="px-3 py-2 font-medium">Source</th>
+              <th className="px-3 py-2 font-medium">Medium</th>
+              <th className="px-3 py-2 font-medium">Campaign</th>
               <th className="px-3 py-2 font-medium">Created</th>
               <th className="px-3 py-2 font-medium"></th>
             </tr>
@@ -225,6 +231,9 @@ export default function AdminUsersPanel() {
                     </p>
                   )}
                 </td>
+                <td className="px-3 py-2 text-text-secondary">{user.utmSource ?? "—"}</td>
+                <td className="px-3 py-2 text-text-secondary">{user.utmMedium ?? "—"}</td>
+                <td className="px-3 py-2 text-text-secondary">{user.utmCampaign ?? "—"}</td>
                 <td className="px-3 py-2 text-text-secondary">
                   {new Date(user.createdAt).toLocaleDateString()}
                 </td>
@@ -276,7 +285,7 @@ export default function AdminUsersPanel() {
             ))}
             {users.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-3 py-6 text-center text-text-secondary">
+                <td colSpan={7} className="px-3 py-6 text-center text-text-secondary">
                   No users yet.
                 </td>
               </tr>

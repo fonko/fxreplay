@@ -6,6 +6,11 @@ export interface CreateUserInput {
   email: string;
   name?: string;
   variantId: string;
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
+  utmContent?: string;
+  utmTerm?: string;
 }
 
 export interface UpdateUserInput {

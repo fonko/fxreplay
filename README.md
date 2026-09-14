@@ -56,11 +56,23 @@ convention and already do a real HTTP round trip under the hood).
   (email, name) and there's intentionally no end-user auth system for this challenge, so
   they're gated behind a shared `ADMIN_API_KEY` header instead of being left open.
 - [`src/pages/admin/users.astro`](src/pages/admin/users.astro) — a small `noindex`
-  admin panel (list + inline rename) that exercises `update`/`list` from the browser,
-  so the contract isn't only provable via curl. [`src/actions/admin.ts`](src/actions/admin.ts)
-  exchanges the same `ADMIN_API_KEY` for an httpOnly `admin_session` cookie on login
-  (`assertAdmin` in `users.ts` accepts either the header or that cookie) — no server-side
-  session store, so it stays correct across Vercel's stateless function invocations.
+  admin panel (list + inline rename + delete, each behind their own confirm/undo step)
+  that exercises `update`/`list`/`delete` from the browser, so the contract isn't only
+  provable via curl. [`src/actions/admin.ts`](src/actions/admin.ts) exchanges the same
+  `ADMIN_API_KEY` for an httpOnly `admin_session` cookie on login (`assertAdmin` in
+  `users.ts` accepts either the header or that cookie) — no server-side session store,
+  so it stays correct across Vercel's stateless function invocations.
+
+**UTM attribution:** [`src/middleware.ts`](src/middleware.ts) reads `utm_source`/
+`utm_medium`/`utm_campaign`/`utm_content`/`utm_term` off the landing request's query
+string and drops them in a `ph_utm` cookie — but only if that cookie doesn't already
+exist, so a later visit with no query params (a direct return to finish signing up)
+never overwrites the campaign that actually brought them (first-touch, not last-touch).
+`signup.ts` reads that cookie and persists the values onto the new `leads` row, and the
+admin panel lists Source/Medium/Campaign per user. This is separate from — and doesn't
+depend on — PostHog's own automatic UTM capture on `$pageview`/person properties: this
+path guarantees the attribution sits next to the user record in Postgres rather than
+requiring a live PostHog query to reconstruct it.
 
 **Email confirmation (magic link):** after `createUser` succeeds (including on a
 repeat signup — doubles as "resend the link"), `signup.ts` issues a single-use token

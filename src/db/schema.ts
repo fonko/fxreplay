@@ -8,6 +8,15 @@ export const leads = pgTable("leads", {
   email: text("email").notNull().unique(),
   name: text("name"),
   variantId: text("variant_id"),
+  // First-touch attribution, captured server-side in middleware.ts from the
+  // landing request's query string (see the ph_utm cookie) — not resent by
+  // the signup form itself, so it's still correct if the user converts on a
+  // later visit with no query params.
+  utmSource: text("utm_source"),
+  utmMedium: text("utm_medium"),
+  utmCampaign: text("utm_campaign"),
+  utmContent: text("utm_content"),
+  utmTerm: text("utm_term"),
   emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true })

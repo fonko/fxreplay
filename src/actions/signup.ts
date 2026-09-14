@@ -15,13 +15,23 @@ export const signup = defineAction({
   handler: async ({ email, name, variantId }, context) => {
     const distinctId = context.cookies.get("ph_distinct_id")?.value ?? crypto.randomUUID();
     const firstSeenAt = context.cookies.get("ph_first_seen_at")?.value;
+    const utm = context.cookies.get("ph_utm")?.json() as Record<string, string> | undefined;
     const posthog = createPostHogServerClient();
 
     try {
       // The signup flow's persistence goes through the same Users API used
       // by src/actions/users.ts#create — not a one-off insert — so this is a
       // real integration point rather than an isolated demo.
-      const { user, alreadyExisted } = await createUser({ email, name, variantId });
+      const { user, alreadyExisted } = await createUser({
+        email,
+        name,
+        variantId,
+        utmSource: utm?.utm_source,
+        utmMedium: utm?.utm_medium,
+        utmCampaign: utm?.utm_campaign,
+        utmContent: utm?.utm_content,
+        utmTerm: utm?.utm_term,
+      });
 
       // Don't double-count conversions for an email that already signed up
       // (e.g. a re-submit after a network hiccup) — the funnel's account_created
