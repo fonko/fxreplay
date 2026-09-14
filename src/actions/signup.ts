@@ -40,7 +40,10 @@ export const signup = defineAction({
       }
 
       return { success: true as const, userId: user.id, alreadyExisted };
-    } catch {
+    } catch (err) {
+      // Logged server-side (visible in Vercel's function logs) rather than
+      // returned to the client — the client only ever sees a generic message.
+      console.error("signup action failed:", err);
       throw new ActionError({ code: "INTERNAL_SERVER_ERROR", message: "Signup failed" });
     } finally {
       await posthog.shutdown();

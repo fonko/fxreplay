@@ -24,7 +24,8 @@ export const users = {
     handler: async (input) => {
       try {
         return await createUser(input);
-      } catch {
+      } catch (err) {
+        console.error("users.create action failed:", err);
         throw new ActionError({ code: "INTERNAL_SERVER_ERROR", message: "Could not create user" });
       }
     },
