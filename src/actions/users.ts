@@ -1,7 +1,7 @@
 import { defineAction, ActionError } from "astro:actions";
 import { z } from "astro/zod";
 import type { ActionAPIContext } from "astro:actions";
-import { createUser, updateUser, listUsers } from "../lib/users/service";
+import { createUser, updateUser, listUsers, deleteUser } from "../lib/users/service";
 import { createPostHogServerClient } from "../lib/posthog/server";
 import { ADMIN_COOKIE } from "./admin";
 
@@ -63,6 +63,21 @@ export const users = {
     handler: async ({ limit }, context) => {
       assertAdmin(context);
       return { users: await listUsers({ limit }) };
+    },
+  }),
+
+  delete: defineAction({
+    accept: "json",
+    input: z.object({
+      id: z.uuid(),
+    }),
+    handler: async ({ id }, context) => {
+      assertAdmin(context);
+      const user = await deleteUser(id);
+      if (!user) {
+        throw new ActionError({ code: "NOT_FOUND", message: "User not found" });
+      }
+      return { deleted: true as const };
     },
   }),
 };

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { actions, isInputError } from "astro:actions";
+import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,6 +29,9 @@ export default function AdminUsersPanel() {
   const [editName, setEditName] = useState("");
   const [savingId, setSavingId] = useState<string | null>(null);
   const [rowError, setRowError] = useState<Record<string, string>>({});
+
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   async function fetchUsers() {
     setRefreshing(true);
@@ -76,6 +80,7 @@ export default function AdminUsersPanel() {
   }
 
   function startEdit(user: UserRow) {
+    setConfirmDeleteId(null);
     setEditingId(user.id);
     setEditName(user.name ?? "");
     setRowError((prev) => ({ ...prev, [user.id]: "" }));
@@ -84,6 +89,33 @@ export default function AdminUsersPanel() {
   function cancelEdit() {
     setEditingId(null);
     setEditName("");
+  }
+
+  function startDelete(id: string) {
+    setEditingId(null);
+    setConfirmDeleteId(id);
+    setRowError((prev) => ({ ...prev, [id]: "" }));
+  }
+
+  function cancelDelete() {
+    setConfirmDeleteId(null);
+  }
+
+  async function confirmDelete(id: string) {
+    setDeletingId(id);
+    setRowError((prev) => ({ ...prev, [id]: "" }));
+
+    const { error } = await actions.users.delete({ id });
+    setDeletingId(null);
+
+    if (error) {
+      const message = error.code === "NOT_FOUND" ? "User no longer exists." : "Could not delete user.";
+      setRowError((prev) => ({ ...prev, [id]: message }));
+      return;
+    }
+
+    setUsers((prev) => prev.filter((u) => u.id !== id));
+    setConfirmDeleteId(null);
   }
 
   async function saveEdit(id: string) {
@@ -210,10 +242,34 @@ export default function AdminUsersPanel() {
                         Cancel
                       </Button>
                     </div>
+                  ) : confirmDeleteId === user.id ? (
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => confirmDelete(user.id)}
+                        disabled={deletingId === user.id}
+                      >
+                        {deletingId === user.id ? "Deleting…" : "Confirm"}
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={cancelDelete}>
+                        Cancel
+                      </Button>
+                    </div>
                   ) : (
-                    <Button size="sm" variant="outline" onClick={() => startEdit(user)}>
-                      Edit
-                    </Button>
+                    <div className="flex justify-end gap-1.5">
+                      <Button size="sm" variant="outline" onClick={() => startEdit(user)}>
+                        Edit
+                      </Button>
+                      <Button
+                        size="icon-sm"
+                        variant="ghost"
+                        aria-label={`Delete ${user.email}`}
+                        onClick={() => startDelete(user.id)}
+                      >
+                        <Trash2 className="size-3.5" />
+                      </Button>
+                    </div>
                   )}
                 </td>
               </tr>

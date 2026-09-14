@@ -30,3 +30,8 @@ export async function updateUser(id: string, input: UpdateUserInput) {
 export async function listUsers({ limit = 50 }: { limit?: number } = {}) {
   return db.select().from(leads).orderBy(desc(leads.createdAt)).limit(limit);
 }
+
+export async function deleteUser(id: string) {
+  const [user] = await db.delete(leads).where(eq(leads.id, id)).returning();
+  return user ?? null;
+}
