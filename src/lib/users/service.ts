@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { db } from "../../db/client";
 import { leads } from "../../db/schema";
 
@@ -41,4 +41,17 @@ export async function listUsers({ limit = 50 }: { limit?: number } = {}) {
 export async function deleteUser(id: string) {
   const [user] = await db.delete(leads).where(eq(leads.id, id)).returning();
   return user ?? null;
+}
+
+// Postgres-only, no PostHog round trip: every account_created is a `leads`
+// row, and email_verified_at is set by the magic-link confirm flow, so this
+// is a plain aggregate — unlike the funnel overview, which needs PostHog.
+export async function getEmailConfirmationStats() {
+  const [row] = await db
+    .select({
+      total: sql<number>`count(*)`,
+      confirmed: sql<number>`count(*) filter (where ${leads.emailVerifiedAt} is not null)`,
+    })
+    .from(leads);
+  return { total: Number(row.total), confirmed: Number(row.confirmed) };
 }

@@ -105,6 +105,19 @@ own merge mechanism rather than a third-party CDP.
   `person_id` spans both the pre- and post-`identify()` distinct_ids. Fetched lazily
   per row, not on page load, since it's a real external round trip per user.
 
+**Admin panel: conversion overview.** A `users.overview` action (fetched once per
+admin session, not per row) surfaces the numbers that actually answer "is this
+working": overall CVR, CVR per `hero-variant` value — the experiment's real success
+metric, not a side fact — and the full funnel's per-step counts/retention, plus an
+email-confirmation rate that's pure Postgres (no PostHog call needed, since both
+`account_created` and `email_verified_at` already live in `leads`).
+[`getFunnelOverview()`](src/lib/posthog/query.ts) runs one HogQL query grouping
+`uniq(person_id)` by `(event, properties.variant_id)` across the five funnel events —
+one external round trip computes both the overall and per-variant breakdowns, rather
+than querying per variant. `uniq(person_id)`, not `distinct_id`, for the same reason
+the per-user timeline looks up by `person_id`: a person can carry more than one
+distinct_id across the anonymous→identified merge, so `distinct_id` would overcount.
+
 **Email confirmation (magic link):** after `createUser` succeeds (including on a
 repeat signup — doubles as "resend the link"), `signup.ts` issues a single-use token
 via [`src/lib/magic-link/service.ts`](src/lib/magic-link/service.ts) and emails it

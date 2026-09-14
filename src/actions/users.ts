@@ -1,9 +1,9 @@
 import { defineAction, ActionError } from "astro:actions";
 import { z } from "astro/zod";
 import type { ActionAPIContext } from "astro:actions";
-import { createUser, updateUser, listUsers, deleteUser } from "../lib/users/service";
+import { createUser, updateUser, listUsers, deleteUser, getEmailConfirmationStats } from "../lib/users/service";
 import { createPostHogServerClient } from "../lib/posthog/server";
-import { getPersonTimeline } from "../lib/posthog/query";
+import { getPersonTimeline, getFunnelOverview } from "../lib/posthog/query";
 import { ADMIN_COOKIE } from "./admin";
 
 // No end-user auth system exists for this challenge (see CLAUDE.md scope).
@@ -97,6 +97,24 @@ export const users = {
       } catch (err) {
         console.error("users.timeline action failed:", err);
         throw new ActionError({ code: "INTERNAL_SERVER_ERROR", message: "Could not load timeline" });
+      }
+    },
+  }),
+
+  // North-star numbers for the admin overview: overall/per-variant CVR
+  // (PostHog — the denominator, landing_page_viewed, never lives in
+  // Postgres) plus email confirmation rate (Postgres-only, no external call).
+  overview: defineAction({
+    accept: "json",
+    input: z.object({}),
+    handler: async (_input, context) => {
+      assertAdmin(context);
+      try {
+        const [funnel, emailStats] = await Promise.all([getFunnelOverview(), getEmailConfirmationStats()]);
+        return { funnel, emailStats };
+      } catch (err) {
+        console.error("users.overview action failed:", err);
+        throw new ActionError({ code: "INTERNAL_SERVER_ERROR", message: "Could not load overview" });
       }
     },
   }),

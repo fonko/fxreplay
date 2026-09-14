@@ -25,7 +25,50 @@ interface TimelineEvent {
   ctaLocation: string | null;
 }
 
+interface FunnelStepCount {
+  event: string;
+  variant: string | null;
+  uniquePeople: number;
+}
+
+interface OverviewData {
+  funnel: FunnelStepCount[];
+  emailStats: { total: number; confirmed: number };
+}
+
 type LoadState = "checking" | "locked" | "unlocked";
+
+const FUNNEL_STEPS: { event: string; label: string }[] = [
+  { event: "landing_page_viewed", label: "Landing viewed" },
+  { event: "cta_clicked", label: "CTA clicked" },
+  { event: "signup_form_started", label: "Form started" },
+  { event: "signup_form_submitted", label: "Form submitted" },
+  { event: "account_created", label: "Account created" },
+];
+
+function formatPercent(numerator: number, denominator: number): string {
+  if (denominator <= 0) return "—";
+  return `${((numerator / denominator) * 100).toFixed(1)}%`;
+}
+
+// { landing_page_viewed: 42, cta_clicked: 18, ... } — summed across variants.
+function totalsByStep(funnel: FunnelStepCount[]): Record<string, number> {
+  const totals: Record<string, number> = {};
+  for (const row of funnel) {
+    totals[row.event] = (totals[row.event] ?? 0) + row.uniquePeople;
+  }
+  return totals;
+}
+
+// { control: 20, test: 22 } for one funnel step, e.g. "account_created".
+function totalsByVariant(funnel: FunnelStepCount[], event: string): Record<string, number> {
+  const totals: Record<string, number> = {};
+  for (const row of funnel) {
+    if (row.event !== event || !row.variant) continue;
+    totals[row.variant] = (totals[row.variant] ?? 0) + row.uniquePeople;
+  }
+  return totals;
+}
 
 function formatDuration(totalSeconds: number | null): string {
   if (totalSeconds == null) return "—";
@@ -84,6 +127,24 @@ export default function AdminUsersPanel() {
   const [timelineError, setTimelineError] = useState<Record<string, string>>({});
   const [showOnlyOurs, setShowOnlyOurs] = useState(true);
 
+  const [overview, setOverview] = useState<OverviewData | null>(null);
+  const [overviewLoading, setOverviewLoading] = useState(false);
+  const [overviewError, setOverviewError] = useState<string | null>(null);
+
+  async function fetchOverview() {
+    setOverviewLoading(true);
+    setOverviewError(null);
+    const { data, error } = await actions.users.overview({});
+    setOverviewLoading(false);
+
+    if (error) {
+      // Don't lock the whole page over this — the user table still works.
+      setOverviewError("Could not load the conversion overview.");
+      return;
+    }
+    setOverview(data);
+  }
+
   async function fetchUsers() {
     setRefreshing(true);
     setListError(null);
@@ -107,6 +168,12 @@ export default function AdminUsersPanel() {
     fetchUsers();
   }, []);
 
+  useEffect(() => {
+    if (loadState === "unlocked" && !overview && !overviewLoading) {
+      fetchOverview();
+    }
+  }, [loadState]);
+
   async function handleLogin(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoggingIn(true);
@@ -127,7 +194,12 @@ export default function AdminUsersPanel() {
   async function handleLogout() {
     await actions.admin.logout({});
     setUsers([]);
+    setOverview(null);
     setLoadState("locked");
+  }
+
+  async function handleRefresh() {
+    await Promise.all([fetchUsers(), fetchOverview()]);
   }
 
   function startEdit(user: UserRow) {
@@ -250,13 +322,20 @@ export default function AdminUsersPanel() {
     );
   }
 
+  const funnelTotals = overview ? totalsByStep(overview.funnel) : {};
+  const landingTotal = funnelTotals["landing_page_viewed"] ?? 0;
+  const accountTotal = funnelTotals["account_created"] ?? 0;
+  const landingByVariant = overview ? totalsByVariant(overview.funnel, "landing_page_viewed") : {};
+  const accountByVariant = overview ? totalsByVariant(overview.funnel, "account_created") : {};
+  const variants = Object.keys(landingByVariant);
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h1 className="font-heading text-xl">Users</h1>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={fetchUsers} disabled={refreshing}>
-            {refreshing ? "Refreshing…" : "Refresh"}
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || overviewLoading}>
+            {refreshing || overviewLoading ? "Refreshing…" : "Refresh"}
           </Button>
           <Button variant="ghost" size="sm" onClick={handleLogout}>
             Log out
@@ -268,6 +347,56 @@ export default function AdminUsersPanel() {
         <p role="alert" className="text-sm text-text-error">
           {listError}
         </p>
+      )}
+
+      {overviewLoading && !overview && <p className="text-sm text-text-secondary">Loading overview…</p>}
+      {overviewError && (
+        <p role="alert" className="text-sm text-text-error">
+          {overviewError}
+        </p>
+      )}
+      {overview && (
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap gap-3">
+            <Card size="sm" className="min-w-[150px] flex-1">
+              <CardHeader>
+                <CardDescription>Overall CVR</CardDescription>
+                <CardTitle>{formatPercent(accountTotal, landingTotal)}</CardTitle>
+              </CardHeader>
+            </Card>
+            {variants.map((variant) => (
+              <Card key={variant} size="sm" className="min-w-[150px] flex-1">
+                <CardHeader>
+                  <CardDescription>CVR · {variant}</CardDescription>
+                  <CardTitle>
+                    {formatPercent(accountByVariant[variant] ?? 0, landingByVariant[variant] ?? 0)}
+                  </CardTitle>
+                </CardHeader>
+              </Card>
+            ))}
+            <Card size="sm" className="min-w-[150px] flex-1">
+              <CardHeader>
+                <CardDescription>Email confirmed</CardDescription>
+                <CardTitle>{formatPercent(overview.emailStats.confirmed, overview.emailStats.total)}</CardTitle>
+              </CardHeader>
+            </Card>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl bg-bg-secondary px-3 py-2 text-sm text-text-secondary">
+            {FUNNEL_STEPS.map((step, i) => {
+              const count = funnelTotals[step.event] ?? 0;
+              return (
+                <span key={step.event} className="flex items-center gap-2">
+                  {i > 0 && <span>→</span>}
+                  <span>
+                    {step.label} <span className="text-text-primary">{count}</span>{" "}
+                    <span>({formatPercent(count, landingTotal)})</span>
+                  </span>
+                </span>
+              );
+            })}
+          </div>
+        </div>
       )}
 
       <div className="overflow-x-auto rounded-xl ring-1 ring-foreground/10">
