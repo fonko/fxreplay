@@ -74,6 +74,18 @@ depend on — PostHog's own automatic UTM capture on `$pageview`/person properti
 path guarantees the attribution sits next to the user record in Postgres rather than
 requiring a live PostHog query to reconstruct it.
 
+**Identity merge (anonymous → identified):** the project mints one stable `distinct_id`
+server-side at first touch ([middleware.ts](src/middleware.ts)'s `ph_distinct_id`
+cookie) and reuses it everywhere — PostHog's own recommended "golden path" alternative
+to Segment's classic anonymous-ID-then-`identify()` flow. On top of that,
+[`SignupForm.tsx`](src/components/sections/SignupForm.tsx) now also calls
+`posthog.identify(userId, { email, name })` client-side on a successful signup, using
+our own database id as the new distinct_id. Verified via HogQL against the live
+project: the resulting person shows `is_identified = true`, and its full event history
+includes every `landing_page_viewed` from before that signup — the same "merge the
+anonymous journey into the now-known user" behavior Segment does, just via PostHog's
+own merge mechanism rather than a third-party CDP.
+
 **Email confirmation (magic link):** after `createUser` succeeds (including on a
 repeat signup — doubles as "resend the link"), `signup.ts` issues a single-use token
 via [`src/lib/magic-link/service.ts`](src/lib/magic-link/service.ts) and emails it

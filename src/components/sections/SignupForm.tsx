@@ -48,6 +48,19 @@ export default function SignupForm({ variantId }: SignupFormProps) {
     window.__ph?.capture(EVENTS.SIGNUP_FORM_SUBMITTED, {
       validation_success: true,
     } satisfies SignupFormSubmittedProps);
+
+    // Merges this browser's pre-signup anonymous history (landing_page_viewed,
+    // cta_clicked, the signup_form_* events above) into the person now known
+    // by our own database id — the standard "use your internal user id as
+    // the distinct_id post-identification" pattern, so it also shows up as
+    // identified in PostHog rather than staying anonymous forever.
+    if (data?.userId) {
+      window.__ph?.identify(data.userId, {
+        email: formData.get("email"),
+        name: formData.get("name") || undefined,
+      });
+    }
+
     setAlreadyExisted(Boolean(data?.alreadyExisted));
     setStatus("success");
   }
