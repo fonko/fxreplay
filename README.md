@@ -116,6 +116,17 @@ instead of stitching together GA4 + a separate flagging tool.
 - **`variant_id` is server-decided, not client-guessed**, and threaded through every
   event via `data-cta-variant` / hidden form fields — no risk of the client
   mis-attributing an event to the wrong arm of the experiment.
+- **`device_type` (mobile/tablet/desktop) is a PostHog *person* property, not just an
+  event property on `landing_page_viewed`** — set via `$set` on that first capture
+  ([client.ts](src/lib/posthog/client.ts)). The brief calls out session/user context per
+  event, and the one piece of context most worth breaking a growth experiment down by
+  is device: mobile and desktop traffic convert differently often enough that treating
+  them as one pool understates what's actually working. Because it's a person property
+  keyed by the same `distinct_id` the client and server share, it's available for
+  breakdown on *every* event in the funnel — including `account_created`, which fires
+  server-side via `posthog-node` and never sees `window.innerWidth` itself. The
+  experiment's funnel metric (§4) can be broken down by `device_type` in PostHog to see
+  whether the hero copy test wins on both, or only one.
 - **No double-counting conversions:** a repeat signup with the same email returns
   `alreadyExisted: true` and skips `account_created` entirely (see §2).
 - **`conversion_time_seconds` is real, not a placeholder:** a `ph_first_seen_at` cookie

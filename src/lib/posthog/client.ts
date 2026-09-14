@@ -39,13 +39,22 @@ export function initPostHogClient(bootstrap: PostHogBootstrap) {
 
   const heroVariant = bootstrap.featureFlags["hero-variant"];
   const params = new URLSearchParams(window.location.search);
+  const deviceType = getDeviceType();
 
-  posthog.capture(EVENTS.LANDING_PAGE_VIEWED, {
-    referrer: document.referrer,
-    utm_source: params.get("utm_source"),
-    variant_id: typeof heroVariant === "string" ? heroVariant : "control",
-    device_type: getDeviceType(),
-  } satisfies LandingPageViewedProps);
+  posthog.capture(
+    EVENTS.LANDING_PAGE_VIEWED,
+    {
+      referrer: document.referrer,
+      utm_source: params.get("utm_source"),
+      variant_id: typeof heroVariant === "string" ? heroVariant : "control",
+      device_type: deviceType,
+    } satisfies LandingPageViewedProps,
+    // $set makes device_type a PERSON property, not just an event property on
+    // this one capture — so breakdowns by device work across the whole funnel,
+    // including account_created, which fires server-side via posthog-node and
+    // never sees the browser's window.innerWidth.
+    { $set: { device_type: deviceType } },
+  );
 }
 
 /** Delegated click tracking for any element carrying data-cta-location/data-cta-text. */
