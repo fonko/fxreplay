@@ -1,6 +1,7 @@
 export interface TimelineEvent {
   event: string;
   timestamp: string;
+  ctaLocation: string | null;
 }
 
 // The PostHog Query API lives on the *app* host (us.posthog.com), not the
@@ -25,8 +26,11 @@ export async function getPersonTimeline(distinctId: string): Promise<TimelineEve
   // their (post-identify) distinct_id, then pulls every event under that
   // person_id — which includes everything captured while they were still
   // anonymous, merged in by PostHog's identify() call.
+  // properties.cta_location lets the admin UI relabel a navbar cta_clicked
+  // as "nav_cta_clicked" for display — cosmetic only, the captured event
+  // name/taxonomy in PostHog itself is unchanged.
   const hogql = `
-    SELECT event, timestamp
+    SELECT event, timestamp, properties.cta_location
     FROM events
     WHERE timestamp >= now() - INTERVAL 400 DAY
       AND person_id = (
@@ -57,6 +61,10 @@ export async function getPersonTimeline(distinctId: string): Promise<TimelineEve
     throw new Error(`PostHog query failed: ${res.status} ${await res.text()}`);
   }
 
-  const data = (await res.json()) as { results?: [string, string][] };
-  return (data.results ?? []).map(([event, timestamp]) => ({ event, timestamp }));
+  const data = (await res.json()) as { results?: [string, string, string | null][] };
+  return (data.results ?? []).map(([event, timestamp, ctaLocation]) => ({
+    event,
+    timestamp,
+    ctaLocation,
+  }));
 }

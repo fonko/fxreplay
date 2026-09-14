@@ -22,6 +22,7 @@ interface UserRow {
 interface TimelineEvent {
   event: string;
   timestamp: string;
+  ctaLocation: string | null;
 }
 
 type LoadState = "checking" | "locked" | "unlocked";
@@ -34,6 +35,29 @@ function formatDuration(totalSeconds: number | null): string {
   if (minutes < 60) return `${minutes}m ${seconds}s`;
   const hours = Math.floor(minutes / 60);
   return `${hours}h ${minutes % 60}m`;
+}
+
+// PostHog's own automatic events ($pageview, $pageleave, $feature_flag_called,
+// etc.) are namespaced with a leading "$" — everything else is an event this
+// app captures itself (landing_page_viewed, cta_clicked, account_created…).
+function isAutomaticEvent(eventName: string): boolean {
+  return eventName.startsWith("$");
+}
+
+// Display-only relabeling: cta_clicked fires for every CTA location by
+// design (see README's Users API notes), but the navbar one reads clearer
+// as its own name in this timeline. Doesn't touch what's actually captured.
+function displayEventName(evt: TimelineEvent): string {
+  if (evt.event === "cta_clicked" && evt.ctaLocation?.startsWith("navbar")) {
+    return "nav_cta_clicked";
+  }
+  return evt.event;
+}
+
+function timelineRowClass(evt: TimelineEvent): string {
+  if (evt.event === "account_created") return "bg-bg-success/15";
+  if (evt.event === "$pageleave") return "bg-bg-error/10";
+  return "";
 }
 
 export default function AdminUsersPanel() {
@@ -58,6 +82,7 @@ export default function AdminUsersPanel() {
   const [timelineCache, setTimelineCache] = useState<Record<string, TimelineEvent[]>>({});
   const [timelineLoadingId, setTimelineLoadingId] = useState<string | null>(null);
   const [timelineError, setTimelineError] = useState<Record<string, string>>({});
+  const [showOnlyOurs, setShowOnlyOurs] = useState(true);
 
   async function fetchUsers() {
     setRefreshing(true);
@@ -249,24 +274,24 @@ export default function AdminUsersPanel() {
         <table className="w-full text-left text-sm">
           <thead className="bg-bg-secondary text-text-secondary">
             <tr>
-              <th className="px-3 py-2 font-medium"></th>
-              <th className="px-3 py-2 font-medium">Email</th>
-              <th className="px-3 py-2 font-medium">Name</th>
-              <th className="px-3 py-2 font-medium">Source</th>
-              <th className="px-3 py-2 font-medium">Medium</th>
-              <th className="px-3 py-2 font-medium">Campaign</th>
-              <th className="px-3 py-2 font-medium">Variant</th>
-              <th className="px-3 py-2 font-medium">Visits</th>
-              <th className="px-3 py-2 font-medium">Time to convert</th>
-              <th className="px-3 py-2 font-medium">Created</th>
-              <th className="px-3 py-2 font-medium"></th>
+              <th className="w-8 px-2 py-2 font-medium"></th>
+              <th className="px-2 py-2 font-medium whitespace-nowrap">Email</th>
+              <th className="px-2 py-2 font-medium whitespace-nowrap">Name</th>
+              <th className="px-2 py-2 font-medium whitespace-nowrap">Source</th>
+              <th className="px-2 py-2 font-medium whitespace-nowrap">Variant</th>
+              <th className="px-2 py-2 font-medium whitespace-nowrap">Visits</th>
+              <th className="px-2 py-2 font-medium whitespace-nowrap" title="Time to convert">
+                Convert
+              </th>
+              <th className="px-2 py-2 font-medium whitespace-nowrap">Created</th>
+              <th className="px-2 py-2 font-medium"></th>
             </tr>
           </thead>
           <tbody>
             {users.map((user) => (
               <Fragment key={user.id}>
                 <tr className="border-t border-border-primary">
-                  <td className="px-3 py-2">
+                  <td className="px-2 py-2">
                     <Button
                       size="icon-sm"
                       variant="ghost"
@@ -280,12 +305,16 @@ export default function AdminUsersPanel() {
                       )}
                     </Button>
                   </td>
-                  <td className="px-3 py-2">{user.email}</td>
-                  <td className="px-3 py-2">
+                  <td className="max-w-[180px] truncate px-2 py-2" title={user.email}>
+                    {user.email}
+                  </td>
+                  <td className="max-w-[120px] px-2 py-2">
                     {editingId === user.id ? (
                       <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-7" />
                     ) : (
-                      (user.name ?? "—")
+                      <span className="block truncate" title={user.name ?? undefined}>
+                        {user.name ?? "—"}
+                      </span>
                     )}
                     {rowError[user.id] && (
                       <p role="alert" className="mt-1 text-xs text-text-error">
@@ -293,18 +322,32 @@ export default function AdminUsersPanel() {
                       </p>
                     )}
                   </td>
-                  <td className="px-3 py-2 text-text-secondary">{user.utmSource ?? "—"}</td>
-                  <td className="px-3 py-2 text-text-secondary">{user.utmMedium ?? "—"}</td>
-                  <td className="px-3 py-2 text-text-secondary">{user.utmCampaign ?? "—"}</td>
-                  <td className="px-3 py-2 text-text-secondary">{user.variantId ?? "—"}</td>
-                  <td className="px-3 py-2 text-text-secondary">{user.visitCount ?? "—"}</td>
-                  <td className="px-3 py-2 text-text-secondary">
+                  <td className="max-w-[140px] px-2 py-2 text-text-secondary">
+                    {user.utmSource ? (
+                      <>
+                        <div className="truncate">{user.utmSource}</div>
+                        {(user.utmMedium || user.utmCampaign) && (
+                          <div
+                            className="truncate text-xs"
+                            title={[user.utmMedium, user.utmCampaign].filter(Boolean).join(" · ")}
+                          >
+                            {[user.utmMedium, user.utmCampaign].filter(Boolean).join(" · ")}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td className="px-2 py-2 text-text-secondary">{user.variantId ?? "—"}</td>
+                  <td className="px-2 py-2 text-text-secondary">{user.visitCount ?? "—"}</td>
+                  <td className="px-2 py-2 whitespace-nowrap text-text-secondary">
                     {formatDuration(user.conversionTimeSeconds)}
                   </td>
-                  <td className="px-3 py-2 text-text-secondary">
+                  <td className="px-2 py-2 whitespace-nowrap text-text-secondary">
                     {new Date(user.createdAt).toLocaleDateString()}
                   </td>
-                  <td className="px-3 py-2 text-right">
+                  <td className="px-2 py-2 text-right">
                     {editingId === user.id ? (
                       <div className="flex justify-end gap-2">
                         <Button
@@ -351,7 +394,7 @@ export default function AdminUsersPanel() {
                 </tr>
                 {expandedId === user.id && (
                   <tr className="border-t border-border-primary bg-bg-secondary/50">
-                    <td colSpan={11} className="px-3 py-3">
+                    <td colSpan={9} className="px-3 py-3">
                       {timelineLoadingId === user.id ? (
                         <p className="text-sm text-text-secondary">Loading timeline…</p>
                       ) : timelineError[user.id] ? (
@@ -359,16 +402,28 @@ export default function AdminUsersPanel() {
                           {timelineError[user.id]}
                         </p>
                       ) : timelineCache[user.id]?.length ? (
-                        <ol className="flex flex-col gap-1 text-sm">
-                          {timelineCache[user.id].map((evt, i) => (
-                            <li key={i} className="flex gap-3">
-                              <span className="w-44 shrink-0 text-text-secondary">
-                                {new Date(evt.timestamp).toLocaleString()}
-                              </span>
-                              <span>{evt.event}</span>
-                            </li>
-                          ))}
-                        </ol>
+                        <div className="flex flex-col gap-2">
+                          <label className="flex w-fit items-center gap-1.5 text-xs text-text-secondary">
+                            <input
+                              type="checkbox"
+                              checked={showOnlyOurs}
+                              onChange={(e) => setShowOnlyOurs(e.target.checked)}
+                            />
+                            Only our events (hide PostHog's automatic ones)
+                          </label>
+                          <ol className="flex flex-col gap-1 text-sm">
+                            {timelineCache[user.id]
+                              .filter((evt) => !showOnlyOurs || !isAutomaticEvent(evt.event))
+                              .map((evt, i) => (
+                                <li key={i} className={`flex gap-3 rounded px-1.5 py-0.5 ${timelineRowClass(evt)}`}>
+                                  <span className="w-44 shrink-0 text-text-secondary">
+                                    {new Date(evt.timestamp).toLocaleString()}
+                                  </span>
+                                  <span>{displayEventName(evt)}</span>
+                                </li>
+                              ))}
+                          </ol>
+                        </div>
                       ) : (
                         <p className="text-sm text-text-secondary">
                           No PostHog activity found for this user.
@@ -381,7 +436,7 @@ export default function AdminUsersPanel() {
             ))}
             {users.length === 0 && (
               <tr>
-                <td colSpan={11} className="px-3 py-6 text-center text-text-secondary">
+                <td colSpan={9} className="px-3 py-6 text-center text-text-secondary">
                   No users yet.
                 </td>
               </tr>
