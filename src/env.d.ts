@@ -14,6 +14,7 @@ declare namespace App {
 interface ImportMetaEnv {
   readonly PUBLIC_POSTHOG_KEY: string;
   readonly PUBLIC_POSTHOG_HOST: string;
+  readonly PUBLIC_POSTHOG_ENV?: string;
   readonly POSTHOG_PERSONAL_API_KEY?: string;
   readonly POSTHOG_APP_HOST?: string;
   readonly POSTHOG_PROJECT_ID?: string;
