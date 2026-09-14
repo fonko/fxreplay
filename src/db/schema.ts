@@ -9,9 +9,12 @@ export const leads = pgTable("leads", {
   name: text("name"),
   variantId: text("variant_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date()),
 });
 
-// TODO once Supabase MCP reconnects and this migration is applied:
-//   ALTER TABLE leads ENABLE ROW LEVEL SECURITY;
-//   -- inserts only via the server-side service role (this table is written
-//   -- from the signup Astro Action, never directly from client code).
+// RLS is enabled in drizzle/0000_uneven_jazinda.sql with no policies: writes
+// only happen server-side via DATABASE_URL (superuser, bypasses RLS), and
+// this keeps the row-level data out of Supabase's public PostgREST Data API.

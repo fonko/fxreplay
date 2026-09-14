@@ -12,6 +12,7 @@ interface SignupFormProps {
 export default function SignupForm({ variantId }: SignupFormProps) {
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [alreadyExisted, setAlreadyExisted] = useState(false);
   const startedFields = useRef(new Set<string>());
   const mountedAt = useRef(performance.now());
 
@@ -31,7 +32,7 @@ export default function SignupForm({ variantId }: SignupFormProps) {
     setErrorMessage(null);
 
     const formData = new FormData(event.currentTarget);
-    const { error } = await actions.signup(formData);
+    const { data, error } = await actions.signup(formData);
 
     if (error) {
       const errorCode = isInputError(error) ? "validation_error" : error.code;
@@ -47,13 +48,16 @@ export default function SignupForm({ variantId }: SignupFormProps) {
     window.__ph?.capture(EVENTS.SIGNUP_FORM_SUBMITTED, {
       validation_success: true,
     } satisfies SignupFormSubmittedProps);
+    setAlreadyExisted(Boolean(data?.alreadyExisted));
     setStatus("success");
   }
 
   if (status === "success") {
     return (
       <p role="status" className="text-center text-text-brand">
-        You're in — check your inbox to get started.
+        {alreadyExisted
+          ? "That email is already signed up — check your inbox to get started."
+          : "You're in — check your inbox to get started."}
       </p>
     );
   }

@@ -17,6 +17,10 @@
         "-y",
         "@upstash/context7-mcp"
       ]
+    },
+    "vercel": {
+      "type": "http",
+      "url": "https://mcp.vercel.com"
     }
   }
 }
