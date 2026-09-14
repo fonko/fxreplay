@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useState } from "react";
 import { actions, isInputError } from "astro:actions";
-import { Trash2, ChevronRight, ChevronDown, TriangleAlert } from "lucide-react";
+import { Trash2, ChevronRight, ChevronDown, TriangleAlert, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,6 +26,8 @@ interface TimelineEvent {
   ctaLocation: string | null;
   errorSource: string | null;
   errorMessage: string | null;
+  sessionId: string | null;
+  recordingUrl: string | null;
 }
 
 interface FunnelStepCount {
@@ -102,6 +104,19 @@ function displayEventName(evt: TimelineEvent): string {
 
 function isErrorEvent(eventName: string): boolean {
   return eventName === "$exception";
+}
+
+// Most events in a timeline share the same $session_id (everything from one
+// browser session), so this collapses them to one link per session instead
+// of repeating the same recording URL on every row.
+function uniqueRecordings(events: TimelineEvent[]): { sessionId: string; url: string; firstSeenAt: string }[] {
+  const seen = new Map<string, { sessionId: string; url: string; firstSeenAt: string }>();
+  for (const evt of events) {
+    if (evt.sessionId && evt.recordingUrl && !seen.has(evt.sessionId)) {
+      seen.set(evt.sessionId, { sessionId: evt.sessionId, url: evt.recordingUrl, firstSeenAt: evt.timestamp });
+    }
+  }
+  return [...seen.values()];
 }
 
 function timelineRowClass(evt: TimelineEvent): string {
@@ -551,6 +566,23 @@ export default function AdminUsersPanel() {
                         </p>
                       ) : timelineCache[user.id]?.length ? (
                         <div className="flex flex-col gap-2">
+                          {uniqueRecordings(timelineCache[user.id]).length > 0 && (
+                            <div className="flex flex-wrap items-center gap-2 text-xs">
+                              <span className="text-text-secondary">Session recordings:</span>
+                              {uniqueRecordings(timelineCache[user.id]).map((rec) => (
+                                <a
+                                  key={rec.sessionId}
+                                  href={rec.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="inline-flex items-center gap-1 rounded-full bg-bg-secondary px-2 py-0.5 text-text-primary hover:underline"
+                                >
+                                  <Video className="size-3" />
+                                  {new Date(rec.firstSeenAt).toLocaleString()}
+                                </a>
+                              ))}
+                            </div>
+                          )}
                           <label className="flex w-fit items-center gap-1.5 text-xs text-text-secondary">
                             <input
                               type="checkbox"

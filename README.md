@@ -116,6 +116,12 @@ own merge mechanism rather than a third-party CDP.
   `$identify`. Looked up by `person_id` (not `distinct_id` alone), since only
   `person_id` spans both the pre- and post-`identify()` distinct_ids. Fetched lazily
   per row, not on page load, since it's a real external round trip per user.
+  Each event also carries `properties.$session_id` — the same id PostHog's session
+  recording player uses — so the timeline links straight to `{POSTHOG_APP_HOST}/project/
+  {POSTHOG_PROJECT_ID}/replay/{sessionId}` (deduplicated to one link per session) instead
+  of making the admin go find the right recording by hand. Not every session has a
+  matching recording — PostHog's own caveat, not a bug here — so a link can 404 if that
+  particular session never persisted snapshot data (e.g. too short/low-activity).
 
 **Admin panel: conversion overview.** A `users.overview` action (fetched once per
 admin session, not per row) surfaces the numbers that actually answer "is this
