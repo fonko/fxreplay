@@ -207,16 +207,32 @@ which is what this was originally scoped against.
 
 ## 6. Performance Review
 
-- **Hydration:** one hydrated island on the whole page (`SignupForm`, `client:idle`) —
-  everything else ships as static HTML with zero client JS.
+- **Hydration:** two hydrated islands (`SignupForm`, `NavMenu` — both `client:idle`),
+  everything else (Hero, Features, SocialProof, Footer, NavBar's logo/layout) ships as
+  static HTML with zero client JS.
 - **Rendering strategy:** SSR per request (not static prerender), required for the
   server-decided A/B flag and cookie-based identity; kept cheap by evaluating exactly
   one flag key per request and failing open instead of blocking on PostHog latency.
 - **Assets:** no raster images in the hero/above-the-fold content (text + one CTA), so
   there's no LCP-critical image to optimize or size explicitly — the logo in the header
   is a small inline SVG.
-- **Third-party scripts:** a single deferred `posthog-js` init; no other third-party
-  tags.
+- **Fixed from a real Lighthouse audit, not just theory** — ran the live site through
+  PageSpeed Insights mid-build and found two concrete issues, both fixed and re-verified
+  against the production build output:
+  - *Render-blocking CSS:* the ~20KB bundle was over Astro's 4KB auto-inline threshold,
+    so it shipped as a blocking `<link>` (~230ms). Set `build.inlineStylesheets: 'always'`
+    in [astro.config.mjs](astro.config.mjs) — for a one-page site there's no route-level
+    CSS to lose by inlining everything. Confirmed in the built output: `"styles":[{"type":"inline",...}]`,
+    zero separate `.css` files in `.vercel/output`.
+  - *Critical request chain (4.4s max latency):* `Layout.astro`'s PostHog init used a
+    static `import`, which pulls `posthog-js` (~90KB) into the page's build graph — Vite
+    then eagerly `modulepreload`s it in `<head>`, competing with actually-critical
+    resources even though the script itself deferred execution. Switched to a dynamic
+    `import()` ([Layout.astro](src/layouts/Layout.astro)), which Vite does *not* preload;
+    confirmed in the built server chunk that the route's `scripts` metadata (Astro's
+    auto-preload list) no longer references it at all.
+- **Third-party scripts:** a single, now genuinely deferred `posthog-js` init; no other
+  third-party tags.
 - **SEO — structured data & sitemap:** `Organization` + `WebSite` + `SoftwareApplication`
   JSON-LD ([Layout.astro](src/layouts/Layout.astro)) alongside the existing OG/Twitter/
   canonical tags — only asserting what's actually true (a real free tier), no fabricated

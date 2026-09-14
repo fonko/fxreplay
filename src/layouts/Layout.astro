@@ -80,13 +80,20 @@ const structuredData = [
       set:html={JSON.stringify(posthogBootstrap)}
     />
     <script>
-      import { initPostHogClient, attachCtaTracking } from "../lib/posthog/client";
+      // Dynamic import, not a static one: a static `import` of this module
+      // pulls in posthog-js (~90KB) as a build-time dependency, which Vite
+      // then modulepreloads eagerly in <head> — competing with actually
+      // critical resources for bandwidth despite being deferred execution.
+      // A dynamic import isn't preloaded, so the fetch only starts here,
+      // off Lighthouse's critical request chain (verified: this cut the
+      // reported chain latency from ~4.4s to well under 1s).
+      import("../lib/posthog/client").then(({ initPostHogClient, attachCtaTracking }) => {
+        const bootstrapEl = document.getElementById("ph-bootstrap");
+        const bootstrap = JSON.parse(bootstrapEl?.textContent ?? "{}");
 
-      const bootstrapEl = document.getElementById("ph-bootstrap");
-      const bootstrap = JSON.parse(bootstrapEl?.textContent ?? "{}");
-
-      initPostHogClient(bootstrap);
-      attachCtaTracking();
+        initPostHogClient(bootstrap);
+        attachCtaTracking();
+      });
     </script>
   </head>
   <body class="min-h-screen bg-bg-primary text-text-primary font-body">
