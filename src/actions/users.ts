@@ -2,6 +2,7 @@ import { defineAction, ActionError } from "astro:actions";
 import { z } from "astro/zod";
 import type { ActionAPIContext } from "astro:actions";
 import { createUser, updateUser, listUsers } from "../lib/users/service";
+import { createPostHogServerClient } from "../lib/posthog/server";
 
 // No end-user auth system exists for this challenge (see CLAUDE.md scope).
 // `update`/`list` return account records, so they're gated behind a shared
@@ -21,12 +22,17 @@ export const users = {
       name: z.string().min(1).optional(),
       variantId: z.string(),
     }),
-    handler: async (input) => {
+    handler: async (input, context) => {
+      const distinctId = context.cookies.get("ph_distinct_id")?.value ?? crypto.randomUUID();
+      const posthog = createPostHogServerClient();
       try {
         return await createUser(input);
       } catch (err) {
         console.error("users.create action failed:", err);
+        await posthog.captureExceptionImmediate(err, distinctId, { source: "users_create_action" });
         throw new ActionError({ code: "INTERNAL_SERVER_ERROR", message: "Could not create user" });
+      } finally {
+        await posthog.shutdown();
       }
     },
   }),
