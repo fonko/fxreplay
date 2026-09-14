@@ -65,7 +65,7 @@ export default function NavMenu({ variantId }: NavMenuProps) {
             type="button"
             className="flex items-center gap-1 rounded-md px-3 py-2 text-sm text-text-secondary transition-colors hover:text-text-primary"
             aria-expanded={featuresOpen}
-            aria-haspopup="true"
+            aria-controls="features-panel"
             onClick={() => {
               setFeaturesOpen((open) => {
                 if (!open) trackMenuOpened("features_dropdown");
@@ -78,12 +78,15 @@ export default function NavMenu({ variantId }: NavMenuProps) {
           </button>
 
           {featuresOpen && (
+            // A disclosure panel of static descriptions, not a command menu
+            // (nothing here is clickable) — role="menu"/"menuitem" would
+            // promise keyboard/arrow-key menu semantics this doesn't have.
             <div
-              role="menu"
+              id="features-panel"
               className="absolute left-0 top-full mt-2 w-64 rounded-lg border border-border-primary bg-card-bg-primary p-2 shadow-xl"
             >
               {FEATURES.map((feature) => (
-                <div key={feature.label} role="menuitem" className="rounded-md px-3 py-2 hover:bg-card-bg-primary-hover">
+                <div key={feature.label} className="rounded-md px-3 py-2">
                   <p className="text-sm font-medium text-card-text-primary">{feature.label}</p>
                   <p className="text-xs text-card-text-secondary">{feature.description}</p>
                 </div>

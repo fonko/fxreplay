@@ -227,6 +227,24 @@ which is what this was originally scoped against.
 - **Assets:** no raster images in the hero/above-the-fold content (text + one CTA), so
   there's no LCP-critical image to optimize or size explicitly — the logo in the header
   is a small inline SVG.
+- **Accessibility** — checked directly (heading structure, images, focus order), not
+  just asserted:
+  - Heading hierarchy is sequential with no skipped levels (`h1` → `h2` → `h2`), every
+    `<img>` has `alt` (decorative ones use `alt=""` + `aria-hidden`), and `<html lang="en">`
+    is set.
+  - All interactive elements are real `<button>`/`<a>` tags (never a `<div onClick>`), so
+    they're keyboard-reachable and activate on Enter/Space by default — verified the tab
+    order reaches the logo, then Features, then Get Started, in that sequence, with a
+    visible focus ring (the shared `Button` component's `focus-visible:ring-3`).
+  - Found and fixed a real mismatch during this check: the Features dropdown's items were
+    marked `role="menuitem"` (ARIA menu semantics — arrow-key navigation, activatable
+    commands) but are static, non-interactive descriptions. Switched the trigger/panel to
+    the plain disclosure pattern (`aria-expanded` + `aria-controls`, no `aria-haspopup`)
+    instead of mislabeling inert content as a command menu.
+  - The signup form's error state uses `role="alert"` and the success state `role="status"`
+    so screen readers announce both without the user needing to re-find the form.
+  - Not done: no full screen-reader pass (VoiceOver/NVDA) and no automated axe-core/
+    Lighthouse accessibility score — the checks above are real but manual, not exhaustive.
 - **Fixed from a real Lighthouse audit, not just theory** — ran the live site through
   PageSpeed Insights mid-build and found two concrete issues, both fixed and re-verified
   against the production build output:
