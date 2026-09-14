@@ -55,6 +55,12 @@ convention and already do a real HTTP round trip under the hood).
 - `create` is public (it's what the signup form calls). `update`/`list` return PII
   (email, name) and there's intentionally no end-user auth system for this challenge, so
   they're gated behind a shared `ADMIN_API_KEY` header instead of being left open.
+- [`src/pages/admin/users.astro`](src/pages/admin/users.astro) — a small `noindex`
+  admin panel (list + inline rename) that exercises `update`/`list` from the browser,
+  so the contract isn't only provable via curl. [`src/actions/admin.ts`](src/actions/admin.ts)
+  exchanges the same `ADMIN_API_KEY` for an httpOnly `admin_session` cookie on login
+  (`assertAdmin` in `users.ts` accepts either the header or that cookie) — no server-side
+  session store, so it stays correct across Vercel's stateless function invocations.
 
 **Persistence trade-offs:**
 - Table is named `leads` (pre-existing from an earlier scaffold) and serves as the

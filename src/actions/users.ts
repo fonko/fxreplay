@@ -3,12 +3,14 @@ import { z } from "astro/zod";
 import type { ActionAPIContext } from "astro:actions";
 import { createUser, updateUser, listUsers } from "../lib/users/service";
 import { createPostHogServerClient } from "../lib/posthog/server";
+import { ADMIN_COOKIE } from "./admin";
 
 // No end-user auth system exists for this challenge (see CLAUDE.md scope).
 // `update`/`list` return account records, so they're gated behind a shared
-// admin key rather than left open to anyone who finds the action path.
+// admin key — either the `x-admin-key` header directly (curl/API callers) or
+// the `admin_session` cookie set by `admin.login` (the browser admin panel).
 function assertAdmin(context: ActionAPIContext) {
-  const key = context.request.headers.get("x-admin-key");
+  const key = context.request.headers.get("x-admin-key") ?? context.cookies.get(ADMIN_COOKIE)?.value;
   if (!import.meta.env.ADMIN_API_KEY || key !== import.meta.env.ADMIN_API_KEY) {
     throw new ActionError({ code: "UNAUTHORIZED", message: "Missing or invalid admin key" });
   }
