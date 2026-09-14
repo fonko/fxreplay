@@ -140,6 +140,10 @@ secondary is a Mean metric on `cta_clicked` total count — PostHog's current me
 types (`Funnel`/`Mean`/`Ratio`/`Retention`) rather than the "Trend" naming used below,
 which is what this was originally scoped against.
 
+| Control | Test |
+|---|---|
+| ![Control variant — "Try FX Replay Free"](docs/images/hero-control.svg) | ![Test variant — "Trade Smarter. Backtest Instantly."](docs/images/hero-test.svg) |
+
 - **Hypothesis:** the control headline ("Try FX Replay Free") just repeats the CTA and
   doesn't say what the product actually does. A benefit-led headline that names the
   concrete action ("Trade Smarter. Backtest Instantly.") will convert better because it
