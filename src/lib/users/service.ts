@@ -11,6 +11,8 @@ export interface CreateUserInput {
   utmCampaign?: string;
   utmContent?: string;
   utmTerm?: string;
+  visitCount?: number;
+  conversionTimeSeconds?: number;
 }
 
 export interface UpdateUserInput {

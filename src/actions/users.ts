@@ -3,6 +3,7 @@ import { z } from "astro/zod";
 import type { ActionAPIContext } from "astro:actions";
 import { createUser, updateUser, listUsers, deleteUser } from "../lib/users/service";
 import { createPostHogServerClient } from "../lib/posthog/server";
+import { getPersonTimeline } from "../lib/posthog/query";
 import { ADMIN_COOKIE } from "./admin";
 
 // No end-user auth system exists for this challenge (see CLAUDE.md scope).
@@ -78,6 +79,25 @@ export const users = {
         throw new ActionError({ code: "NOT_FOUND", message: "User not found" });
       }
       return { deleted: true as const };
+    },
+  }),
+
+  // Live PostHog lookup — the full event-by-event journey (including
+  // everything that happened while this person was still anonymous, merged
+  // in by identify()) only lives there, not in our own Postgres row.
+  timeline: defineAction({
+    accept: "json",
+    input: z.object({
+      id: z.uuid(),
+    }),
+    handler: async ({ id }, context) => {
+      assertAdmin(context);
+      try {
+        return { events: await getPersonTimeline(id) };
+      } catch (err) {
+        console.error("users.timeline action failed:", err);
+        throw new ActionError({ code: "INTERNAL_SERVER_ERROR", message: "Could not load timeline" });
+      }
     },
   }),
 };

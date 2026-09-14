@@ -15,6 +15,8 @@ interface ImportMetaEnv {
   readonly PUBLIC_POSTHOG_KEY: string;
   readonly PUBLIC_POSTHOG_HOST: string;
   readonly POSTHOG_PERSONAL_API_KEY?: string;
+  readonly POSTHOG_APP_HOST?: string;
+  readonly POSTHOG_PROJECT_ID?: string;
   readonly DATABASE_URL: string;
   readonly SUPABASE_URL: string;
   readonly SUPABASE_ANON_KEY: string;

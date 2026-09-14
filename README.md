@@ -86,6 +86,25 @@ includes every `landing_page_viewed` from before that signup — the same "merge
 anonymous journey into the now-known user" behavior Segment does, just via PostHog's
 own merge mechanism rather than a third-party CDP.
 
+**Admin panel: per-user funnel data.** Two tiers, both live in
+[`AdminUsersPanel.tsx`](src/components/admin/AdminUsersPanel.tsx):
+- **Cheap (Postgres columns, no external call):** `variantId` (already existed),
+  plus two new snapshot columns taken at signup time from cookies
+  [middleware.ts](src/middleware.ts) already maintains — `visitCount` (from
+  `ph_visit_count`, incremented on every real `GET /` — i.e. how many times this
+  browser showed up anonymously before converting) and `conversionTimeSeconds`
+  (same math already used for the `account_created` PostHog property, just also
+  persisted). Shown as plain table columns.
+- **Complete (live PostHog query, on demand):** the actual event-by-event funnel
+  only lives in PostHog, not Postgres. Clicking a row's expand chevron calls the new
+  `users.timeline` action → [`src/lib/posthog/query.ts`](src/lib/posthog/query.ts),
+  which runs a HogQL query against PostHog's Query API (`POSTHOG_APP_HOST` +
+  `POSTHOG_PROJECT_ID`, a personal API key with the **Query Read** scope) for that
+  person's full merged history — every anonymous `landing_page_viewed` through
+  `$identify`. Looked up by `person_id` (not `distinct_id` alone), since only
+  `person_id` spans both the pre- and post-`identify()` distinct_ids. Fetched lazily
+  per row, not on page load, since it's a real external round trip per user.
+
 **Email confirmation (magic link):** after `createUser` succeeds (including on a
 repeat signup — doubles as "resend the link"), `signup.ts` issues a single-use token
 via [`src/lib/magic-link/service.ts`](src/lib/magic-link/service.ts) and emails it

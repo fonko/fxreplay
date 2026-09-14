@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { uuidv7 } from "uuidv7";
 
 // Postgres 16 has no built-in uuidv7() — generated app-side here. Revisit if
@@ -17,6 +17,13 @@ export const leads = pgTable("leads", {
   utmCampaign: text("utm_campaign"),
   utmContent: text("utm_content"),
   utmTerm: text("utm_term"),
+  // Snapshot at signup time from the ph_visit_count/ph_first_seen_at cookies
+  // (middleware.ts) — cheap admin-table columns that don't need a live
+  // PostHog query. The full event-by-event journey (including everything
+  // that happened anonymously) is fetched on demand instead, via
+  // src/lib/posthog/query.ts, since that only lives in PostHog.
+  visitCount: integer("visit_count"),
+  conversionTimeSeconds: integer("conversion_time_seconds"),
   emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true })

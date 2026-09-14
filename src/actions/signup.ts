@@ -16,6 +16,10 @@ export const signup = defineAction({
     const distinctId = context.cookies.get("ph_distinct_id")?.value ?? crypto.randomUUID();
     const firstSeenAt = context.cookies.get("ph_first_seen_at")?.value;
     const utm = context.cookies.get("ph_utm")?.json() as Record<string, string> | undefined;
+    const visitCountRaw = Number(context.cookies.get("ph_visit_count")?.value ?? "0");
+    const conversionTimeSeconds = firstSeenAt
+      ? Math.round((Date.now() - Number(firstSeenAt)) / 1000)
+      : null;
     const posthog = createPostHogServerClient();
 
     try {
@@ -31,6 +35,8 @@ export const signup = defineAction({
         utmCampaign: utm?.utm_campaign,
         utmContent: utm?.utm_content,
         utmTerm: utm?.utm_term,
+        visitCount: visitCountRaw > 0 ? visitCountRaw : undefined,
+        conversionTimeSeconds: conversionTimeSeconds ?? undefined,
       });
 
       // Don't double-count conversions for an email that already signed up
@@ -43,9 +49,7 @@ export const signup = defineAction({
           properties: {
             user_id: user.id,
             variant_id: variantId,
-            conversion_time_seconds: firstSeenAt
-              ? (Date.now() - Number(firstSeenAt)) / 1000
-              : null,
+            conversion_time_seconds: conversionTimeSeconds,
           } satisfies AccountCreatedProps,
         });
       }

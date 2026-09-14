@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { actions, isInputError } from "astro:actions";
-import { Trash2 } from "lucide-react";
+import { Trash2, ChevronRight, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,13 +10,31 @@ interface UserRow {
   id: string;
   email: string;
   name: string | null;
+  variantId: string | null;
   utmSource: string | null;
   utmMedium: string | null;
   utmCampaign: string | null;
+  visitCount: number | null;
+  conversionTimeSeconds: number | null;
   createdAt: Date;
 }
 
+interface TimelineEvent {
+  event: string;
+  timestamp: string;
+}
+
 type LoadState = "checking" | "locked" | "unlocked";
+
+function formatDuration(totalSeconds: number | null): string {
+  if (totalSeconds == null) return "—";
+  if (totalSeconds < 60) return `${totalSeconds}s`;
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  if (minutes < 60) return `${minutes}m ${seconds}s`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours}h ${minutes % 60}m`;
+}
 
 export default function AdminUsersPanel() {
   const [loadState, setLoadState] = useState<LoadState>("checking");
@@ -35,6 +53,11 @@ export default function AdminUsersPanel() {
 
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [timelineCache, setTimelineCache] = useState<Record<string, TimelineEvent[]>>({});
+  const [timelineLoadingId, setTimelineLoadingId] = useState<string | null>(null);
+  const [timelineError, setTimelineError] = useState<Record<string, string>>({});
 
   async function fetchUsers() {
     setRefreshing(true);
@@ -119,6 +142,26 @@ export default function AdminUsersPanel() {
 
     setUsers((prev) => prev.filter((u) => u.id !== id));
     setConfirmDeleteId(null);
+  }
+
+  async function toggleTimeline(id: string) {
+    if (expandedId === id) {
+      setExpandedId(null);
+      return;
+    }
+    setExpandedId(id);
+    if (timelineCache[id]) return;
+
+    setTimelineLoadingId(id);
+    setTimelineError((prev) => ({ ...prev, [id]: "" }));
+    const { data, error } = await actions.users.timeline({ id });
+    setTimelineLoadingId(null);
+
+    if (error) {
+      setTimelineError((prev) => ({ ...prev, [id]: "Could not load timeline." }));
+      return;
+    }
+    setTimelineCache((prev) => ({ ...prev, [id]: data.events }));
   }
 
   async function saveEdit(id: string) {
@@ -206,86 +249,139 @@ export default function AdminUsersPanel() {
         <table className="w-full text-left text-sm">
           <thead className="bg-bg-secondary text-text-secondary">
             <tr>
+              <th className="px-3 py-2 font-medium"></th>
               <th className="px-3 py-2 font-medium">Email</th>
               <th className="px-3 py-2 font-medium">Name</th>
               <th className="px-3 py-2 font-medium">Source</th>
               <th className="px-3 py-2 font-medium">Medium</th>
               <th className="px-3 py-2 font-medium">Campaign</th>
+              <th className="px-3 py-2 font-medium">Variant</th>
+              <th className="px-3 py-2 font-medium">Visits</th>
+              <th className="px-3 py-2 font-medium">Time to convert</th>
               <th className="px-3 py-2 font-medium">Created</th>
               <th className="px-3 py-2 font-medium"></th>
             </tr>
           </thead>
           <tbody>
             {users.map((user) => (
-              <tr key={user.id} className="border-t border-border-primary">
-                <td className="px-3 py-2">{user.email}</td>
-                <td className="px-3 py-2">
-                  {editingId === user.id ? (
-                    <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-7" />
-                  ) : (
-                    (user.name ?? "—")
-                  )}
-                  {rowError[user.id] && (
-                    <p role="alert" className="mt-1 text-xs text-text-error">
-                      {rowError[user.id]}
-                    </p>
-                  )}
-                </td>
-                <td className="px-3 py-2 text-text-secondary">{user.utmSource ?? "—"}</td>
-                <td className="px-3 py-2 text-text-secondary">{user.utmMedium ?? "—"}</td>
-                <td className="px-3 py-2 text-text-secondary">{user.utmCampaign ?? "—"}</td>
-                <td className="px-3 py-2 text-text-secondary">
-                  {new Date(user.createdAt).toLocaleDateString()}
-                </td>
-                <td className="px-3 py-2 text-right">
-                  {editingId === user.id ? (
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => saveEdit(user.id)}
-                        disabled={savingId === user.id || editName.trim().length === 0}
-                      >
-                        {savingId === user.id ? "Saving…" : "Save"}
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={cancelEdit}>
-                        Cancel
-                      </Button>
-                    </div>
-                  ) : confirmDeleteId === user.id ? (
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => confirmDelete(user.id)}
-                        disabled={deletingId === user.id}
-                      >
-                        {deletingId === user.id ? "Deleting…" : "Confirm"}
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={cancelDelete}>
-                        Cancel
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex justify-end gap-1.5">
-                      <Button size="sm" variant="outline" onClick={() => startEdit(user)}>
-                        Edit
-                      </Button>
-                      <Button
-                        size="icon-sm"
-                        variant="ghost"
-                        aria-label={`Delete ${user.email}`}
-                        onClick={() => startDelete(user.id)}
-                      >
-                        <Trash2 className="size-3.5" />
-                      </Button>
-                    </div>
-                  )}
-                </td>
-              </tr>
+              <Fragment key={user.id}>
+                <tr className="border-t border-border-primary">
+                  <td className="px-3 py-2">
+                    <Button
+                      size="icon-sm"
+                      variant="ghost"
+                      aria-label={expandedId === user.id ? "Collapse timeline" : "Expand timeline"}
+                      onClick={() => toggleTimeline(user.id)}
+                    >
+                      {expandedId === user.id ? (
+                        <ChevronDown className="size-3.5" />
+                      ) : (
+                        <ChevronRight className="size-3.5" />
+                      )}
+                    </Button>
+                  </td>
+                  <td className="px-3 py-2">{user.email}</td>
+                  <td className="px-3 py-2">
+                    {editingId === user.id ? (
+                      <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-7" />
+                    ) : (
+                      (user.name ?? "—")
+                    )}
+                    {rowError[user.id] && (
+                      <p role="alert" className="mt-1 text-xs text-text-error">
+                        {rowError[user.id]}
+                      </p>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-text-secondary">{user.utmSource ?? "—"}</td>
+                  <td className="px-3 py-2 text-text-secondary">{user.utmMedium ?? "—"}</td>
+                  <td className="px-3 py-2 text-text-secondary">{user.utmCampaign ?? "—"}</td>
+                  <td className="px-3 py-2 text-text-secondary">{user.variantId ?? "—"}</td>
+                  <td className="px-3 py-2 text-text-secondary">{user.visitCount ?? "—"}</td>
+                  <td className="px-3 py-2 text-text-secondary">
+                    {formatDuration(user.conversionTimeSeconds)}
+                  </td>
+                  <td className="px-3 py-2 text-text-secondary">
+                    {new Date(user.createdAt).toLocaleDateString()}
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    {editingId === user.id ? (
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => saveEdit(user.id)}
+                          disabled={savingId === user.id || editName.trim().length === 0}
+                        >
+                          {savingId === user.id ? "Saving…" : "Save"}
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={cancelEdit}>
+                          Cancel
+                        </Button>
+                      </div>
+                    ) : confirmDeleteId === user.id ? (
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => confirmDelete(user.id)}
+                          disabled={deletingId === user.id}
+                        >
+                          {deletingId === user.id ? "Deleting…" : "Confirm"}
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={cancelDelete}>
+                          Cancel
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex justify-end gap-1.5">
+                        <Button size="sm" variant="outline" onClick={() => startEdit(user)}>
+                          Edit
+                        </Button>
+                        <Button
+                          size="icon-sm"
+                          variant="ghost"
+                          aria-label={`Delete ${user.email}`}
+                          onClick={() => startDelete(user.id)}
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+                {expandedId === user.id && (
+                  <tr className="border-t border-border-primary bg-bg-secondary/50">
+                    <td colSpan={11} className="px-3 py-3">
+                      {timelineLoadingId === user.id ? (
+                        <p className="text-sm text-text-secondary">Loading timeline…</p>
+                      ) : timelineError[user.id] ? (
+                        <p role="alert" className="text-sm text-text-error">
+                          {timelineError[user.id]}
+                        </p>
+                      ) : timelineCache[user.id]?.length ? (
+                        <ol className="flex flex-col gap-1 text-sm">
+                          {timelineCache[user.id].map((evt, i) => (
+                            <li key={i} className="flex gap-3">
+                              <span className="w-44 shrink-0 text-text-secondary">
+                                {new Date(evt.timestamp).toLocaleString()}
+                              </span>
+                              <span>{evt.event}</span>
+                            </li>
+                          ))}
+                        </ol>
+                      ) : (
+                        <p className="text-sm text-text-secondary">
+                          No PostHog activity found for this user.
+                        </p>
+                      )}
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
             ))}
             {users.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-3 py-6 text-center text-text-secondary">
+                <td colSpan={11} className="px-3 py-6 text-center text-text-secondary">
                   No users yet.
                 </td>
               </tr>

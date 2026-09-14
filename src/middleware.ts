@@ -5,6 +5,7 @@ const DISTINCT_ID_COOKIE = "ph_distinct_id";
 const FIRST_SEEN_COOKIE = "ph_first_seen_at";
 const UTM_COOKIE = "ph_utm";
 const UTM_PARAMS = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"] as const;
+const VISIT_COUNT_COOKIE = "ph_visit_count";
 const HERO_FLAG_KEY = "hero-variant";
 
 export const onRequest = defineMiddleware(async (context, next) => {
@@ -47,6 +48,19 @@ export const onRequest = defineMiddleware(async (context, next) => {
         secure: true,
       });
     }
+  }
+
+  // Counts real landing-page loads only (not action calls, not other
+  // routes) — a cheap "how many times did this browser show up as anonymous
+  // before converting" number that signup.ts snapshots onto the new row.
+  if (context.request.method === "GET" && context.url.pathname === "/") {
+    const current = Number(context.cookies.get(VISIT_COUNT_COOKIE)?.value ?? "0");
+    context.cookies.set(VISIT_COUNT_COOKIE, String(current + 1), {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax",
+      secure: true,
+    });
   }
 
   let heroVariant = "control";

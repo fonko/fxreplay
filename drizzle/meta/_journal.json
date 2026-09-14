@@ -22,6 +22,13 @@
       "when": 1789391062600,
       "tag": "0002_slim_payback",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1789392637437,
+      "tag": "0003_daily_lionheart",
+      "breakpoints": true
     }
   ]
 }
