@@ -4,8 +4,12 @@ export interface TimelineEvent {
   ctaLocation: string | null;
   errorSource: string | null;
   errorMessage: string | null;
-  sessionId: string | null;
-  recordingUrl: string | null;
+}
+
+export interface PersonRecording {
+  sessionId: string;
+  url: string;
+  firstSeenAt: string;
 }
 
 export interface FunnelStepCount {
@@ -67,10 +71,6 @@ async function runHogQL<T extends unknown[]>(hogql: string, name: string): Promi
 // first $exception_values entry are how signup.ts's captureExceptionImmediate
 // calls tag errors (source: "signup_action" | "magic_link_email" | …) —
 // pulled through so a $exception row can show what actually broke.
-// properties.$session_id is set by posthog-js on every client-side capture
-// (server-side ones like account_created/$exception don't have one) — the
-// session recording's id *is* that same value, so it doubles as a direct
-// key into PostHog's replay player, no separate lookup needed.
 export async function getPersonTimeline(distinctId: string): Promise<TimelineEvent[]> {
   // ORDER BY … DESC LIMIT 200, then reversed below: a person who has been
   // through a lot of (mostly dev-testing) history can easily have 200+
@@ -78,7 +78,7 @@ export async function getPersonTimeline(distinctId: string): Promise<TimelineEve
   // recent activity — including anything from the signup that's actually
   // being looked at — instead of their oldest.
   const hogql = `
-    SELECT event, timestamp, properties.cta_location, properties.source, properties.$exception_values[1], properties.$session_id
+    SELECT event, timestamp, properties.cta_location, properties.source, properties.$exception_values[1]
     FROM events
     WHERE timestamp >= now() - INTERVAL 400 DAY
       AND person_id = (
@@ -93,21 +93,59 @@ export async function getPersonTimeline(distinctId: string): Promise<TimelineEve
     LIMIT 200
   `;
 
-  const rows = await runHogQL<[string, string, string | null, string | null, string | null, string | null]>(
+  const rows = await runHogQL<[string, string, string | null, string | null, string | null]>(
     hogql,
     "admin_user_timeline",
   );
   return rows
-    .map(([event, timestamp, ctaLocation, errorSource, errorMessage, sessionId]) => ({
+    .map(([event, timestamp, ctaLocation, errorSource, errorMessage]) => ({
       event,
       timestamp,
       ctaLocation,
       errorSource,
       errorMessage,
-      sessionId,
-      recordingUrl: buildReplayUrl(sessionId),
     }))
     .reverse();
+}
+
+// Deliberately a separate query from getPersonTimeline rather than a column
+// on it: that timeline is windowed to the 200 most recent events, and for a
+// person with a lot of accumulated activity (dev testing, repeat visits)
+// that window can end well after their actual recorded sessions — silently
+// hiding real recordings that happened earlier. raw_session_replay_events
+// (filtered to size > 0, i.e. snapshot data actually persisted, not just a
+// $session_id that happened to exist) is the ground truth, checked directly
+// against every distinct_id this person has ever used, independent of how
+// much noisier activity sits between "now" and when they were recorded.
+export async function getPersonRecordings(distinctId: string): Promise<PersonRecording[]> {
+  const hogql = `
+    SELECT session_id, min_first_timestamp
+    FROM raw_session_replay_events
+    WHERE size > 0
+      AND distinct_id IN (
+        SELECT DISTINCT distinct_id
+        FROM events
+        WHERE person_id = (
+          SELECT person_id
+          FROM events
+          WHERE distinct_id = '${distinctId}'
+            AND timestamp >= now() - INTERVAL 400 DAY
+          ORDER BY timestamp ASC
+          LIMIT 1
+        )
+        AND timestamp >= now() - INTERVAL 400 DAY
+      )
+    ORDER BY min_first_timestamp DESC
+    LIMIT 20
+  `;
+
+  const rows = await runHogQL<[string, string]>(hogql, "admin_person_recordings");
+  return rows
+    .map(([sessionId, firstSeenAt]) => {
+      const url = buildReplayUrl(sessionId);
+      return url ? { sessionId, url, firstSeenAt } : null;
+    })
+    .filter((rec): rec is PersonRecording => rec !== null);
 }
 
 // PostHog session recording ids are the same UUID as $session_id, and the

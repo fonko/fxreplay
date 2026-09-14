@@ -3,7 +3,12 @@ import { z } from "astro/zod";
 import type { ActionAPIContext } from "astro:actions";
 import { createUser, updateUser, listUsers, deleteUser, getEmailConfirmationStats } from "../lib/users/service";
 import { createPostHogServerClient } from "../lib/posthog/server";
-import { getPersonTimeline, getFunnelOverview, createPublicRecordingLink } from "../lib/posthog/query";
+import {
+  getPersonTimeline,
+  getPersonRecordings,
+  getFunnelOverview,
+  createPublicRecordingLink,
+} from "../lib/posthog/query";
 import { ADMIN_COOKIE } from "./admin";
 
 // No end-user auth system exists for this challenge (see CLAUDE.md scope).
@@ -93,7 +98,11 @@ export const users = {
     handler: async ({ id }, context) => {
       assertAdmin(context);
       try {
-        return { events: await getPersonTimeline(id) };
+        // Two independent queries on purpose — see getPersonRecordings's
+        // comment: the timeline's 200-event window can miss recordings from
+        // well before it, so recordings aren't derived from `events` here.
+        const [events, recordings] = await Promise.all([getPersonTimeline(id), getPersonRecordings(id)]);
+        return { events, recordings };
       } catch (err) {
         console.error("users.timeline action failed:", err);
         throw new ActionError({ code: "INTERNAL_SERVER_ERROR", message: "Could not load timeline" });

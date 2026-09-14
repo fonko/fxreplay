@@ -26,8 +26,12 @@ interface TimelineEvent {
   ctaLocation: string | null;
   errorSource: string | null;
   errorMessage: string | null;
-  sessionId: string | null;
-  recordingUrl: string | null;
+}
+
+interface PersonRecording {
+  sessionId: string;
+  url: string;
+  firstSeenAt: string;
 }
 
 interface FunnelStepCount {
@@ -106,19 +110,6 @@ function isErrorEvent(eventName: string): boolean {
   return eventName === "$exception";
 }
 
-// Most events in a timeline share the same $session_id (everything from one
-// browser session), so this collapses them to one link per session instead
-// of repeating the same recording URL on every row.
-function uniqueRecordings(events: TimelineEvent[]): { sessionId: string; url: string; firstSeenAt: string }[] {
-  const seen = new Map<string, { sessionId: string; url: string; firstSeenAt: string }>();
-  for (const evt of events) {
-    if (evt.sessionId && evt.recordingUrl && !seen.has(evt.sessionId)) {
-      seen.set(evt.sessionId, { sessionId: evt.sessionId, url: evt.recordingUrl, firstSeenAt: evt.timestamp });
-    }
-  }
-  return [...seen.values()];
-}
-
 function timelineRowClass(evt: TimelineEvent): string {
   if (isErrorEvent(evt.event)) return "bg-bg-error/25 border border-border-error";
   if (evt.event === "account_created") return "bg-bg-success/15";
@@ -146,6 +137,7 @@ export default function AdminUsersPanel() {
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [timelineCache, setTimelineCache] = useState<Record<string, TimelineEvent[]>>({});
+  const [recordingsCache, setRecordingsCache] = useState<Record<string, PersonRecording[]>>({});
   const [timelineLoadingId, setTimelineLoadingId] = useState<string | null>(null);
   const [timelineError, setTimelineError] = useState<Record<string, string>>({});
   const [showOnlyOurs, setShowOnlyOurs] = useState(true);
@@ -286,6 +278,7 @@ export default function AdminUsersPanel() {
       return;
     }
     setTimelineCache((prev) => ({ ...prev, [id]: data.events }));
+    setRecordingsCache((prev) => ({ ...prev, [id]: data.recordings }));
   }
 
   async function generatePublicLink(sessionId: string) {
@@ -584,10 +577,10 @@ export default function AdminUsersPanel() {
                         </p>
                       ) : timelineCache[user.id]?.length ? (
                         <div className="flex flex-col gap-2">
-                          {uniqueRecordings(timelineCache[user.id]).length > 0 && (
+                          {(recordingsCache[user.id]?.length ?? 0) > 0 && (
                             <div className="flex flex-col gap-1.5 text-xs">
                               <span className="text-text-secondary">Session recordings:</span>
-                              {uniqueRecordings(timelineCache[user.id]).map((rec) => (
+                              {recordingsCache[user.id].map((rec) => (
                                 <div key={rec.sessionId} className="flex flex-wrap items-center gap-2">
                                   <a
                                     href={rec.url}

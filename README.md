@@ -116,13 +116,16 @@ own merge mechanism rather than a third-party CDP.
   `$identify`. Looked up by `person_id` (not `distinct_id` alone), since only
   `person_id` spans both the pre- and post-`identify()` distinct_ids. Fetched lazily
   per row, not on page load, since it's a real external round trip per user.
-  Each event also carries `properties.$session_id` — the same id PostHog's session
-  recording player uses — so the timeline links straight to `{POSTHOG_APP_HOST}/project/
-  {POSTHOG_PROJECT_ID}/replay/{sessionId}` (deduplicated to one link per session) instead
-  of making the admin go find the right recording by hand. Not every session has a
-  matching recording — PostHog's own caveat, not a bug here — so a link can 404 if that
-  particular session never persisted snapshot data (e.g. too short/low-activity).
-  That `/replay/` link still requires the viewer to be logged into PostHog with project
+  Session recordings are **not** derived from that same event list — every client-side
+  event carries a `$session_id` regardless of whether Session Replay actually persisted
+  any snapshot data for it, so a first pass that listed a "recording" per `$session_id`
+  seen in the timeline was showing dead links. `getPersonRecordings()` is a separate
+  query against `raw_session_replay_events` (`size > 0`, i.e. snapshot data actually
+  exists) across every `distinct_id` this person has ever used — deliberately decoupled
+  from the timeline's 200-event window, since a person with a lot of accumulated
+  activity can have that window end well after their real recorded sessions,
+  which otherwise silently disappear. Links to `{POSTHOG_APP_HOST}/project/
+  {POSTHOG_PROJECT_ID}/replay/{sessionId}`. That link still requires the viewer to be logged into PostHog with project
   access. For sharing outside the team, a **"Generate public link"** button next to each
   recording calls `createPublicRecordingLink()`, which `PATCH`es PostHog's
   `session_recordings/:id/sharing/` endpoint (`{ enabled: true }`) and returns a
