@@ -131,8 +131,14 @@ instead of stitching together GA4 + a separate flagging tool.
 
 ## 4. Experiment Proposal
 
-The A/B mechanism (SSR `hero-variant` flag) is already live — this is the first
-experiment to run on it.
+**Status: live**, not just proposed — a PostHog Experiment on the `hero-variant` flag
+is running in production. Verified end-to-end after launch: evaluating the flag across
+20 simulated `distinct_id`s split 9 control / 11 test (real ~50/50 traffic allocation,
+no fallback leakage), and the live site serves the "test" headline for its own visitor
+cookie. Primary metric is a Funnel (`landing_page_viewed` → `account_created`);
+secondary is a Mean metric on `cta_clicked` total count — PostHog's current metric
+types (`Funnel`/`Mean`/`Ratio`/`Retention`) rather than the "Trend" naming used below,
+which is what this was originally scoped against.
 
 - **Hypothesis:** the control headline ("Try FX Replay Free") just repeats the CTA and
   doesn't say what the product actually does. A benefit-led headline that names the
