@@ -3,7 +3,7 @@ import { z } from "astro/zod";
 import type { ActionAPIContext } from "astro:actions";
 import { createUser, updateUser, listUsers, deleteUser, getEmailConfirmationStats } from "../lib/users/service";
 import { createPostHogServerClient } from "../lib/posthog/server";
-import { getPersonTimeline, getFunnelOverview } from "../lib/posthog/query";
+import { getPersonTimeline, getFunnelOverview, createPublicRecordingLink } from "../lib/posthog/query";
 import { ADMIN_COOKIE } from "./admin";
 
 // No end-user auth system exists for this challenge (see CLAUDE.md scope).
@@ -97,6 +97,26 @@ export const users = {
       } catch (err) {
         console.error("users.timeline action failed:", err);
         throw new ActionError({ code: "INTERNAL_SERVER_ERROR", message: "Could not load timeline" });
+      }
+    },
+  }),
+
+  // Explicit, one-recording-at-a-time action — never triggered by loading a
+  // timeline. Enabling PostHog's public sharing makes that session viewable
+  // by anyone with the link (no login), so it only happens when an admin
+  // deliberately asks for this exact recording.
+  createRecordingLink: defineAction({
+    accept: "json",
+    input: z.object({
+      sessionId: z.string().min(1),
+    }),
+    handler: async ({ sessionId }, context) => {
+      assertAdmin(context);
+      try {
+        return { url: await createPublicRecordingLink(sessionId) };
+      } catch (err) {
+        console.error("users.createRecordingLink action failed:", err);
+        throw new ActionError({ code: "INTERNAL_SERVER_ERROR", message: "Could not generate public link" });
       }
     },
   }),

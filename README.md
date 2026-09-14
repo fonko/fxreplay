@@ -122,6 +122,16 @@ own merge mechanism rather than a third-party CDP.
   of making the admin go find the right recording by hand. Not every session has a
   matching recording — PostHog's own caveat, not a bug here — so a link can 404 if that
   particular session never persisted snapshot data (e.g. too short/low-activity).
+  That `/replay/` link still requires the viewer to be logged into PostHog with project
+  access. For sharing outside the team, a **"Generate public link"** button next to each
+  recording calls `createPublicRecordingLink()`, which `PATCH`es PostHog's
+  `session_recordings/:id/sharing/` endpoint (`{ enabled: true }`) and returns a
+  `/embedded/{token}` URL anyone can open with no login. Deliberately **not** generated
+  automatically when the timeline loads: enabling sharing makes that one recording
+  publicly viewable by anyone with the link (a real exposure if inputs aren't masked), so
+  it only happens on an explicit per-recording click — never as a side effect of just
+  looking at someone's timeline. Needs a personal API key with the
+  `sharing_configuration:write` scope, on top of Query Read.
 
 **Admin panel: conversion overview.** A `users.overview` action (fetched once per
 admin session, not per row) surfaces the numbers that actually answer "is this

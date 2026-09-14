@@ -121,6 +121,45 @@ function buildReplayUrl(sessionId: string | null): string | null {
   return `${appHost}/project/${projectId}/replay/${sessionId}`;
 }
 
+// Deliberately NOT called automatically when the timeline loads: enabling
+// sharing makes that one recording viewable by anyone with the link (no
+// PostHog login), so it only runs when an admin explicitly asks for a given
+// session — never as a side effect of just opening someone's timeline. Needs
+// a personal API key with the `sharing_configuration:write` scope (Query
+// Read alone isn't enough).
+export async function createPublicRecordingLink(sessionId: string): Promise<string> {
+  const appHost = import.meta.env.POSTHOG_APP_HOST;
+  const projectId = import.meta.env.POSTHOG_PROJECT_ID;
+  const apiKey = import.meta.env.POSTHOG_PERSONAL_API_KEY;
+
+  if (!appHost || !projectId || !apiKey) {
+    throw new Error(
+      "PostHog query API is not configured (POSTHOG_APP_HOST / POSTHOG_PROJECT_ID / POSTHOG_PERSONAL_API_KEY)",
+    );
+  }
+
+  const res = await fetch(`${appHost}/api/projects/${projectId}/session_recordings/${sessionId}/sharing/`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({ enabled: true }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to enable public sharing: ${res.status} ${await res.text()}`);
+  }
+
+  const data = (await res.json()) as { access_token?: string };
+  if (!data.access_token) {
+    throw new Error("PostHog did not return a sharing access token");
+  }
+
+  // The one PostHog page built to be viewed unauthenticated (and iframed).
+  return `${appHost}/embedded/${data.access_token}`;
+}
+
 // Unique *people* (uniq(person_id), not distinct_id — a person can carry
 // several distinct_ids across the anonymous→identified merge, so counting
 // distinct_id would overcount) per funnel step, broken down by variant_id

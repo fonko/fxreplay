@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useState } from "react";
 import { actions, isInputError } from "astro:actions";
-import { Trash2, ChevronRight, ChevronDown, TriangleAlert, Video } from "lucide-react";
+import { Trash2, ChevronRight, ChevronDown, TriangleAlert, Video, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -150,6 +150,10 @@ export default function AdminUsersPanel() {
   const [timelineError, setTimelineError] = useState<Record<string, string>>({});
   const [showOnlyOurs, setShowOnlyOurs] = useState(true);
 
+  const [publicLinks, setPublicLinks] = useState<Record<string, string>>({});
+  const [publicLinkLoadingId, setPublicLinkLoadingId] = useState<string | null>(null);
+  const [publicLinkError, setPublicLinkError] = useState<Record<string, string>>({});
+
   const [overview, setOverview] = useState<OverviewData | null>(null);
   const [overviewLoading, setOverviewLoading] = useState(false);
   const [overviewError, setOverviewError] = useState<string | null>(null);
@@ -282,6 +286,20 @@ export default function AdminUsersPanel() {
       return;
     }
     setTimelineCache((prev) => ({ ...prev, [id]: data.events }));
+  }
+
+  async function generatePublicLink(sessionId: string) {
+    setPublicLinkLoadingId(sessionId);
+    setPublicLinkError((prev) => ({ ...prev, [sessionId]: "" }));
+
+    const { data, error } = await actions.users.createRecordingLink({ sessionId });
+    setPublicLinkLoadingId(null);
+
+    if (error) {
+      setPublicLinkError((prev) => ({ ...prev, [sessionId]: "Could not generate a public link." }));
+      return;
+    }
+    setPublicLinks((prev) => ({ ...prev, [sessionId]: data.url }));
   }
 
   async function saveEdit(id: string) {
@@ -567,19 +585,50 @@ export default function AdminUsersPanel() {
                       ) : timelineCache[user.id]?.length ? (
                         <div className="flex flex-col gap-2">
                           {uniqueRecordings(timelineCache[user.id]).length > 0 && (
-                            <div className="flex flex-wrap items-center gap-2 text-xs">
+                            <div className="flex flex-col gap-1.5 text-xs">
                               <span className="text-text-secondary">Session recordings:</span>
                               {uniqueRecordings(timelineCache[user.id]).map((rec) => (
-                                <a
-                                  key={rec.sessionId}
-                                  href={rec.url}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="inline-flex items-center gap-1 rounded-full bg-bg-secondary px-2 py-0.5 text-text-primary hover:underline"
-                                >
-                                  <Video className="size-3" />
-                                  {new Date(rec.firstSeenAt).toLocaleString()}
-                                </a>
+                                <div key={rec.sessionId} className="flex flex-wrap items-center gap-2">
+                                  <a
+                                    href={rec.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-1 rounded-full bg-bg-secondary px-2 py-0.5 text-text-primary hover:underline"
+                                  >
+                                    <Video className="size-3" />
+                                    {new Date(rec.firstSeenAt).toLocaleString()}
+                                  </a>
+                                  {publicLinks[rec.sessionId] ? (
+                                    <a
+                                      href={publicLinks[rec.sessionId]}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="inline-flex items-center gap-1 rounded-full bg-bg-success/20 px-2 py-0.5 text-text-success hover:underline"
+                                      title="Anyone with this link can view it — no PostHog login required"
+                                    >
+                                      <Share2 className="size-3" />
+                                      Public link ready
+                                    </a>
+                                  ) : (
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 gap-1 px-2 text-xs"
+                                      onClick={() => generatePublicLink(rec.sessionId)}
+                                      disabled={publicLinkLoadingId === rec.sessionId}
+                                    >
+                                      <Share2 className="size-3" />
+                                      {publicLinkLoadingId === rec.sessionId
+                                        ? "Generating…"
+                                        : "Generate public link"}
+                                    </Button>
+                                  )}
+                                  {publicLinkError[rec.sessionId] && (
+                                    <span role="alert" className="text-text-error">
+                                      {publicLinkError[rec.sessionId]}
+                                    </span>
+                                  )}
+                                </div>
                               ))}
                             </div>
                           )}
