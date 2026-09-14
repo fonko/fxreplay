@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useState } from "react";
 import { actions, isInputError } from "astro:actions";
-import { Trash2, ChevronRight, ChevronDown } from "lucide-react";
+import { Trash2, ChevronRight, ChevronDown, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,6 +23,8 @@ interface TimelineEvent {
   event: string;
   timestamp: string;
   ctaLocation: string | null;
+  errorSource: string | null;
+  errorMessage: string | null;
 }
 
 interface FunnelStepCount {
@@ -97,7 +99,12 @@ function displayEventName(evt: TimelineEvent): string {
   return evt.event;
 }
 
+function isErrorEvent(eventName: string): boolean {
+  return eventName === "$exception";
+}
+
 function timelineRowClass(evt: TimelineEvent): string {
+  if (isErrorEvent(evt.event)) return "bg-bg-error/25 border border-border-error";
   if (evt.event === "account_created") return "bg-bg-success/15";
   if (evt.event === "$pageleave") return "bg-bg-error/10";
   return "";
@@ -542,13 +549,26 @@ export default function AdminUsersPanel() {
                           </label>
                           <ol className="flex flex-col gap-1 text-sm">
                             {timelineCache[user.id]
-                              .filter((evt) => !showOnlyOurs || !isAutomaticEvent(evt.event))
+                              .filter((evt) => isErrorEvent(evt.event) || !showOnlyOurs || !isAutomaticEvent(evt.event))
                               .map((evt, i) => (
-                                <li key={i} className={`flex gap-3 rounded px-1.5 py-0.5 ${timelineRowClass(evt)}`}>
-                                  <span className="w-44 shrink-0 text-text-secondary">
-                                    {new Date(evt.timestamp).toLocaleString()}
-                                  </span>
-                                  <span>{displayEventName(evt)}</span>
+                                <li key={i} className={`rounded px-1.5 py-0.5 ${timelineRowClass(evt)}`}>
+                                  <div className="flex items-center gap-3">
+                                    <span className="w-44 shrink-0 text-text-secondary">
+                                      {new Date(evt.timestamp).toLocaleString()}
+                                    </span>
+                                    {isErrorEvent(evt.event) && (
+                                      <TriangleAlert className="size-3.5 shrink-0 text-text-error" />
+                                    )}
+                                    <span className={isErrorEvent(evt.event) ? "font-medium text-text-error" : ""}>
+                                      {isErrorEvent(evt.event) ? "ALERT — exception" : displayEventName(evt)}
+                                    </span>
+                                  </div>
+                                  {isErrorEvent(evt.event) && evt.errorMessage && (
+                                    <p className="mt-0.5 pl-[188px] text-xs text-text-error">
+                                      {evt.errorSource && <span className="opacity-80">[{evt.errorSource}] </span>}
+                                      {evt.errorMessage}
+                                    </p>
+                                  )}
                                 </li>
                               ))}
                           </ol>

@@ -2,6 +2,8 @@ export interface TimelineEvent {
   event: string;
   timestamp: string;
   ctaLocation: string | null;
+  errorSource: string | null;
+  errorMessage: string | null;
 }
 
 export interface FunnelStepCount {
@@ -59,10 +61,18 @@ async function runHogQL<T extends unknown[]>(hogql: string, name: string): Promi
 // anonymous, merged in by PostHog's identify() call.
 // properties.cta_location lets the admin UI relabel a navbar cta_clicked
 // as "nav_cta_clicked" for display — cosmetic only, the captured event
-// name/taxonomy in PostHog itself is unchanged.
+// name/taxonomy in PostHog itself is unchanged. properties.source and the
+// first $exception_values entry are how signup.ts's captureExceptionImmediate
+// calls tag errors (source: "signup_action" | "magic_link_email" | …) —
+// pulled through so a $exception row can show what actually broke.
 export async function getPersonTimeline(distinctId: string): Promise<TimelineEvent[]> {
+  // ORDER BY … DESC LIMIT 200, then reversed below: a person who has been
+  // through a lot of (mostly dev-testing) history can easily have 200+
+  // events, and an ASC-ordered LIMIT would silently cut off their most
+  // recent activity — including anything from the signup that's actually
+  // being looked at — instead of their oldest.
   const hogql = `
-    SELECT event, timestamp, properties.cta_location
+    SELECT event, timestamp, properties.cta_location, properties.source, properties.$exception_values[1]
     FROM events
     WHERE timestamp >= now() - INTERVAL 400 DAY
       AND person_id = (
@@ -73,12 +83,23 @@ export async function getPersonTimeline(distinctId: string): Promise<TimelineEve
         ORDER BY timestamp ASC
         LIMIT 1
       )
-    ORDER BY timestamp ASC
+    ORDER BY timestamp DESC
     LIMIT 200
   `;
 
-  const rows = await runHogQL<[string, string, string | null]>(hogql, "admin_user_timeline");
-  return rows.map(([event, timestamp, ctaLocation]) => ({ event, timestamp, ctaLocation }));
+  const rows = await runHogQL<[string, string, string | null, string | null, string | null]>(
+    hogql,
+    "admin_user_timeline",
+  );
+  return rows
+    .map(([event, timestamp, ctaLocation, errorSource, errorMessage]) => ({
+      event,
+      timestamp,
+      ctaLocation,
+      errorSource,
+      errorMessage,
+    }))
+    .reverse();
 }
 
 // Unique *people* (uniq(person_id), not distinct_id — a person can carry
