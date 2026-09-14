@@ -3,6 +3,7 @@ import { z } from "astro/zod";
 import { createPostHogServerClient } from "../lib/posthog/server";
 import { EVENTS, type AccountCreatedProps } from "../lib/posthog/events";
 import { createUser } from "../lib/users/service";
+import { issueMagicLink, sendMagicLinkEmail } from "../lib/magic-link/service";
 
 export const signup = defineAction({
   accept: "form",
@@ -37,6 +38,18 @@ export const signup = defineAction({
               : null,
           } satisfies AccountCreatedProps,
         });
+      }
+
+      // Best-effort: the account already exists at this point, so a flaky
+      // SMTP send shouldn't turn into a failed signup. Sent on repeat
+      // submissions too — doubles as a "resend the link" path.
+      try {
+        const token = await issueMagicLink(user.id);
+        const siteUrl = new URL(context.request.url).origin;
+        await sendMagicLinkEmail(user.email, token, siteUrl);
+      } catch (err) {
+        console.error("magic link email failed:", err);
+        await posthog.captureExceptionImmediate(err, distinctId, { source: "magic_link_email" });
       }
 
       return { success: true as const, userId: user.id, alreadyExisted };

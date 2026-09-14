@@ -1,0 +1,31 @@
+---
+import "../styles/global.css";
+import { eq } from "drizzle-orm";
+import { db } from "../db/client";
+import { leads } from "../db/schema";
+
+const userId = Astro.cookies.get("user_session")?.value;
+const [user] = userId ? await db.select().from(leads).where(eq(leads.id, userId)).limit(1) : [];
+
+if (!user) {
+  return Astro.redirect("/");
+}
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Dashboard · FX Replay</title>
+  </head>
+  <body class="flex min-h-screen items-center justify-center bg-bg-primary text-text-primary font-body">
+    <div class="max-w-md px-4 text-center">
+      <h1 class="font-heading text-2xl">Welcome, {user.name ?? user.email}!</h1>
+      <p class="mt-2 text-text-secondary">
+        Your email is confirmed. This dashboard is a placeholder — nothing lives here yet.
+      </p>
+    </div>
+  </body>
+</html>

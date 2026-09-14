@@ -1,0 +1,37 @@
+---
+import "../../styles/global.css";
+import { consumeMagicLink } from "../../lib/magic-link/service";
+
+const token = Astro.url.searchParams.get("token");
+const result = token ? await consumeMagicLink(token) : null;
+
+if (result) {
+  Astro.cookies.set("user_session", result.userId, {
+    httpOnly: true,
+    secure: Astro.url.protocol === "https:",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 30,
+  });
+  return Astro.redirect("/dashboard");
+}
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Confirm your email · FX Replay</title>
+  </head>
+  <body class="flex min-h-screen items-center justify-center bg-bg-primary text-text-primary font-body">
+    <div class="max-w-md px-4 text-center">
+      <h1 class="font-heading text-xl">This link is invalid or has expired</h1>
+      <p class="mt-2 text-text-secondary">
+        Confirmation links are single-use and expire after 30 minutes. Sign up again to get a
+        fresh one.
+      </p>
+    </div>
+  </body>
+</html>

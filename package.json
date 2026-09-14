@@ -29,6 +29,7 @@
     "cn": "^0.3.0",
     "drizzle-orm": "^0.45.2",
     "lucide-react": "^1.45.0",
+    "nodemailer": "^10.0.9",
     "postgres": "^3.4.9",
     "posthog-js": "^1.430.3",
     "posthog-node": "^5.52.1",
@@ -47,6 +48,7 @@
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
     "@types/node": "^26.5.1",
+    "@types/nodemailer": "^8.0.1",
     "drizzle-kit": "^0.31.10",
     "typescript": "^6.0.3"
   }

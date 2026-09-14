@@ -8,6 +8,7 @@ export const leads = pgTable("leads", {
   email: text("email").notNull().unique(),
   name: text("name"),
   variantId: text("variant_id"),
+  emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()
@@ -15,6 +16,21 @@ export const leads = pgTable("leads", {
     .$onUpdate(() => new Date()),
 });
 
-// RLS is enabled in drizzle/0000_uneven_jazinda.sql with no policies: writes
-// only happen server-side via DATABASE_URL (superuser, bypasses RLS), and
-// this keeps the row-level data out of Supabase's public PostgREST Data API.
+// Single-use, short-lived magic-link tokens for email confirmation. Only the
+// SHA-256 hash is stored — the raw token (in the emailed URL) never touches
+// the database, so a DB read doesn't hand out a usable link.
+export const magicLinks = pgTable("magic_links", {
+  id: uuid("id").primaryKey().$defaultFn(() => uuidv7()),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => leads.id, { onDelete: "cascade" }),
+  tokenHash: text("token_hash").notNull().unique(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  usedAt: timestamp("used_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// RLS is enabled (leads in drizzle/0000_uneven_jazinda.sql, magic_links in
+// its own migration) with no policies: writes only happen server-side via
+// DATABASE_URL (superuser, bypasses RLS), and this keeps both tables out of
+// Supabase's public PostgREST Data API.

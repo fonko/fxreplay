@@ -62,6 +62,30 @@ convention and already do a real HTTP round trip under the hood).
   (`assertAdmin` in `users.ts` accepts either the header or that cookie) — no server-side
   session store, so it stays correct across Vercel's stateless function invocations.
 
+**Email confirmation (magic link):** after `createUser` succeeds (including on a
+repeat signup — doubles as "resend the link"), `signup.ts` issues a single-use token
+via [`src/lib/magic-link/service.ts`](src/lib/magic-link/service.ts) and emails it
+through a DreamHost SMTP mailbox (`nodemailer`, see [`src/lib/email/client.ts`](src/lib/email/client.ts)).
+- Only the token's SHA-256 hash is stored (`magic_links.token_hash`) — a DB read never
+  hands out a usable link. Tokens expire after 30 minutes and are marked used on the
+  first successful confirm, so replaying an old link fails.
+- [`src/pages/auth/confirm.astro`](src/pages/auth/confirm.astro) consumes the token
+  (plain SSR `GET`, not an Action — email clicks are navigations, not RPC calls), sets
+  `leads.email_verified_at`, and drops an httpOnly `user_session` cookie (the row's own
+  id — no separate session store, same stateless-Vercel reasoning as `admin_session`)
+  before redirecting to [`/dashboard`](src/pages/dashboard.astro), a placeholder
+  "Welcome" page gated on that cookie.
+- **Trade-off:** the email send is `await`ed inside the signup action, so the response
+  (and the form's "Creating your account…" state) blocks on a real SMTP round trip
+  (~2-5s observed) rather than returning immediately. Chose correctness over shaving
+  that latency — deferring it (e.g. Vercel's `waitUntil`) risks the function freezing
+  before the email actually sends, and this challenge doesn't have telemetry to verify
+  a background path reliably completes. A failed send is caught and reported via
+  PostHog (`source: "magic_link_email"`) rather than failing the signup itself — the
+  account still gets created either way.
+- New env vars (`.env.example`): `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`,
+  `EMAIL_FROM`.
+
 **Persistence trade-offs:**
 - Table is named `leads` (pre-existing from an earlier scaffold) and serves as the
   Users API's backing store — didn't rename it, not worth the churn for a take-home.

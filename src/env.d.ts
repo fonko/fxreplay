@@ -21,6 +21,11 @@ interface ImportMetaEnv {
   readonly SUPABASE_SERVICE_ROLE_KEY: string;
   readonly PUBLIC_SITE_URL: string;
   readonly ADMIN_API_KEY?: string;
+  readonly SMTP_HOST?: string;
+  readonly SMTP_PORT?: string;
+  readonly SMTP_USER?: string;
+  readonly SMTP_PASS?: string;
+  readonly EMAIL_FROM?: string;
 }
 
 interface ImportMeta {
