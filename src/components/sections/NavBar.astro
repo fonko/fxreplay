@@ -1,0 +1,14 @@
+---
+import NavMenu from "./NavMenu.tsx";
+
+const { heroVariant } = Astro.locals;
+---
+
+<header class="sticky top-0 z-50 border-b border-border-primary bg-bg-elevated relative">
+  <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+    <a href="/" aria-label="FX Replay home" class="inline-block">
+      <img src="/logos/FXReplayLogo.svg" alt="FX Replay" width="140" height="32" />
+    </a>
+    <NavMenu client:idle variantId={heroVariant} />
+  </div>
+</header>

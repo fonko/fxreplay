@@ -74,7 +74,7 @@
      SEMANTIC (60) — purpose-named aliases. Build with these.
      ============================================================ */
 
-  /* Background (8) */
+  /* Background (9) */
   --bg-primary: var(--dark-900);
   --bg-secondary: var(--dark-800);
   --bg-tertiary: var(--dark-700);
@@ -83,6 +83,10 @@
   --bg-success: var(--success);
   --bg-error: var(--error);
   --bg-warning: var(--warning);
+  /* True black — one step darker than the dark-900 "ground". Used for
+     surfaces that need to read as sitting above the page (nav bar), since
+     dark-900 is already the darkest surface in Background otherwise. */
+  --bg-elevated: var(--dark-950);
 
   /* Border (7) */
   --border-primary: var(--dark-700);

@@ -88,6 +88,7 @@
   --color-bg-success: var(--bg-success);
   --color-bg-error: var(--bg-error);
   --color-bg-warning: var(--bg-warning);
+  --color-bg-elevated: var(--bg-elevated);
 
   /* Border (7) */
   --color-border-primary: var(--border-primary);
