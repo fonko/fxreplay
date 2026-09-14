@@ -28,6 +28,18 @@ from day one.
 (Zod-validated) + Drizzle ORM + Supabase Postgres + PostHog (`posthog-js` client,
 `posthog-node` server). Full rationale and hard constraints live in [CLAUDE.md](CLAUDE.md).
 
+**Why this stack (trade-offs considered):** the challenge's ~6-hour build window inside a
+72-hour deadline was the deciding constraint for every row below — not raw capability, which
+several alternatives beat on paper.
+
+| Layer | Chosen | Alternatives considered | Why this one, given the deadline |
+|---|---|---|---|
+| Backend logic | Astro Actions | Fastify 5 standalone service; Supabase Edge Functions | Co-located, Zod-typed, zero extra deploy target. Fastify's `find-my-way` trie router is genuinely faster at scale, but that only matters at request volumes a landing page's 3-endpoint API will never see — a standalone service spends setup time on infra this challenge doesn't need yet. |
+| Database | Supabase Postgres | Neon (serverless, branch-per-PR); PlanetScale (Vitess sharding); Turso (edge SQLite) | RLS, a pooler (Supavisor), and a dashboard, all in one signup — the fastest path to a *secure*, working Postgres, not just a fast one. Neon's branching and Turso's edge reads are real advantages a signup form doesn't need yet. |
+| ORM | Drizzle | Prisma | SQL-first, no binary query engine to install, native UUIDv7. Thinner tooling ecosystem than Prisma — an acceptable trade for a 2-table schema. |
+| Analytics & A/B | PostHog | GA4 + GTM; Segment + Amplitude (all named as valid options in the brief) | The one platform where `posthog-node` resolves feature flags *and* captures events. GA4/GTM only resolve flags client-side, which reintroduces the flicker Server Islands exist to avoid; Segment + Amplitude means stitching two vendors for what PostHog already does as one. |
+| Deployment | Vercel | Cloudflare Workers | Git-push-to-deploy with zero config fit the timeline directly; Cloudflare's edge-compute pricing advantage only shows up at a traffic scale this challenge isn't targeting. |
+
 **Rendering:** everything is static server-rendered HTML except the signup form
 (`SignupForm.tsx`, hydrated with `client:idle`) — the only client JS on the page. Hero
 copy, features, social proof, and footer are plain `.astro` components with zero
