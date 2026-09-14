@@ -5,13 +5,16 @@ import vercel from '@astrojs/vercel';
 
 import react from '@astrojs/react';
 
+import sitemap from '@astrojs/sitemap';
+
 import tailwindcss from '@tailwindcss/vite';
 
 // https://astro.build/config
 export default defineConfig({
+  site: 'https://fxreplay.alfonsopayra.me',
   output: 'server',
   adapter: vercel(),
-  integrations: [react()],
+  integrations: [react(), sitemap()],
   vite: {
     plugins: [tailwindcss()]
   }

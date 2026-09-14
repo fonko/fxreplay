@@ -207,13 +207,13 @@ experiment to run on it.
   is a small inline SVG.
 - **Third-party scripts:** a single deferred `posthog-js` init; no other third-party
   tags.
+- **SEO — structured data & sitemap:** `Organization` + `WebSite` + `SoftwareApplication`
+  JSON-LD ([Layout.astro](src/layouts/Layout.astro)) alongside the existing OG/Twitter/
+  canonical tags — only asserting what's actually true (a real free tier), no fabricated
+  ratings/review counts. `@astrojs/sitemap` generates `sitemap-index.xml` at build time
+  (linked from `robots.txt`); with a single route it's a one-URL sitemap, which is the
+  honest size for a one-page site — not padded out for appearance.
 - **Known gaps, honestly, not glossed over:**
-  - No JSON-LD structured data yet — OG/Twitter/canonical meta tags are in place
-    ([Layout.astro](src/layouts/Layout.astro)) but structured data was deprioritized
-    against the Users API and the production DB outage this session surfaced. Next:
-    add `Organization`/`WebSite` JSON-LD.
-  - No `sitemap.xml` — only `robots.txt` exists. Trivial with `@astrojs/sitemap`, cut
-    for time.
   - No explicit cache-control headers beyond Vercel's defaults — fine at current scale,
     worth revisiting with real traffic.
   - No rate limiting on the public `signup` action — a real production risk (spam

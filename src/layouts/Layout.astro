@@ -11,6 +11,38 @@ interface Props {
 const { title, description, ogImage = "/logos/FXReplayLogo.svg" } = Astro.props;
 const canonicalURL = new URL(Astro.url.pathname, import.meta.env.PUBLIC_SITE_URL ?? Astro.site);
 const { posthogBootstrap } = Astro.locals;
+
+// Single-page site, so structured data is defined once here rather than
+// threaded through as a per-page prop. Only asserting what's actually true
+// (a free tier exists) — no fabricated ratings/review counts.
+const structuredData = [
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "FX Replay",
+    url: canonicalURL.origin,
+    logo: new URL("/logos/FXReplayLogo.svg", canonicalURL.origin).toString(),
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "FX Replay",
+    url: canonicalURL.origin,
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: "FX Replay",
+    applicationCategory: "FinanceApplication",
+    operatingSystem: "Web",
+    description,
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "USD",
+    },
+  },
+];
 ---
 
 <!doctype html>
@@ -33,6 +65,12 @@ const { posthogBootstrap } = Astro.locals;
     <meta name="twitter:image" content={ogImage} />
 
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
+    {
+      structuredData.map((data) => (
+        <script is:inline type="application/ld+json" set:html={JSON.stringify(data)} />
+      ))
+    }
 
     <script
       is:inline
