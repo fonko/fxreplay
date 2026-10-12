@@ -32,7 +32,7 @@
     "nodemailer": "^10.0.9",
     "postgres": "^3.4.9",
     "posthog-js": "^1.430.3",
-    "posthog-node": "^5.52.1",
+    "posthog-node": "^5.55.2",
     "radix-ui": "^1.6.7",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
